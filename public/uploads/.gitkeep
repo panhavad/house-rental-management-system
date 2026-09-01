@@ -1,0 +1,4 @@
+This directory holds contract documents uploaded through the app at runtime
+(see src/lib/contract-document.ts). Its contents are intentionally excluded from
+git (see .gitignore) since they're user-uploaded data, not source code — this
+placeholder just keeps the folder present in a fresh checkout.

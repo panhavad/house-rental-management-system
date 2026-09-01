@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  STAFF
+  VIEWER
+}
+
+enum RoomStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum ContractStatus {
+  ACTIVE
+  ENDED
+  TERMINATED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum UtilityType {
+  WATER
+  ELECTRICITY
+}
+
+enum Currency {
+  USD
+  KHR
+}
+
+model Workspace {
+  id                   String    @id @default(cuid())
+  name                 String
+  slug                 String    @unique
+  isActive             Boolean   @default(true)
+  onboardingCompletedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  users           User[]
+  apartments      Apartment[]
+  facilities      Facility[]
+  utilityRates    UtilityRate[]
+  appSetting      AppSetting?
+  rolePermissions RolePermission[]
+  activityLogs    ActivityLog[]
+}
+
+model AppSetting {
+  id           String   @id @default(cuid())
+  workspaceId  String   @unique
+  currency     Currency @default(USD)
+  exchangeRate Float    @default(4100)
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model RolePermission {
+  workspaceId String
+  role        Role
+  permission  String
+  allowed     Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, role, permission])
+}
+
+model ActivityLog {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  entityType    String
+  entityId      String
+  roomId        String?
+  action        String
+  description   String
+  metadata      String?
+  performedById String?
+  createdAt     DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  performedBy User?     @relation(fields: [performedById], references: [id])
+  room        Room?     @relation(fields: [roomId], references: [id])
+}
+
+model Apartment {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  address     String?
+  description String?
+  mapUrl      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rooms     Room[]
+}
+
+model Contract {
+  id                String         @id @default(cuid())
+  roomId            String
+  tenantName        String
+  tenantPhone       String?
+  tenantEmail       String?
+  tenantIdNumber    String?
+  occupants         Int            @default(1)
+  rentalFee         Float
+  deposit           Float          @default(0)
+  startDate         DateTime
+  endDate           DateTime
+  status            ContractStatus @default(ACTIVE)
+  terminatedAt      DateTime?
+  terminationReason String?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  room      Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  payments  Payment[]
+  documents ContractDocument[]
+}
+
+model ContractDocument {
+  id           String   @id @default(cuid())
+  contractId   String
+  url          String
+  thumbnailUrl String?
+  fileType     String
+  createdAt    DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Facility {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  icon        String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rooms     RoomFacility[]
+
+  @@unique([workspaceId, name])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  roomId           String
+  contractId       String?
+  utilityReadingId String?       @unique
+  month            String
+  rentalFee        Float
+  utilityAmount    Float         @default(0)
+  totalAmount      Float
+  status           PaymentStatus @default(PENDING)
+  dueDate          DateTime?
+  paidAt           DateTime?
+  paidAmount       Float?
+  method           String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  utilityReading UtilityReading? @relation(fields: [utilityReadingId], references: [id])
+  contract       Contract?       @relation(fields: [contractId], references: [id])
+  room           Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, month])
+}
+
+model Room {
+  id           String     @id @default(cuid())
+  apartmentId  String
+  name         String
+  size         Float?
+  type         String
+  floor        String?
+  floorPlanUrl String?
+  rentalFee    Float
+  status       RoomStatus @default(VACANT)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  apartment       Apartment        @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  activityLogs    ActivityLog[]
+  contracts       Contract[]
+  payments        Payment[]
+  facilities      RoomFacility[]
+  utilityReadings UtilityReading[]
+}
+
+model RoomFacility {
+  roomId     String
+  facilityId String
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, facilityId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  workspaceId  String?
+  name         String
+  email        String
+  passwordHash String
+  role         Role     @default(STAFF)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  activityLogs ActivityLog[]
+
+  @@unique([workspaceId, email])
+}
+
+model UtilityRate {
+  id            String      @id @default(cuid())
+  workspaceId   String
+  type          UtilityType
+  pricePerUnit  Float
+  effectiveFrom DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model UtilityReading {
+  id                  String   @id @default(cuid())
+  roomId              String
+  month               String
+  waterPrevious       Float
+  waterCurrent        Float
+  waterUsage          Float
+  waterRate           Float
+  waterCost           Float
+  electricityPrevious Float
+  electricityCurrent  Float
+  electricityUsage    Float
+  electricityRate     Float
+  electricityCost     Float
+  totalCost           Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  payment Payment?
+  room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, month])
+}
