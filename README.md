@@ -144,12 +144,96 @@ again afterwards):
 npm run clean:all
 ```
 
-### Production build
+### Production build (without Docker)
+
+`npm run dev` is only for local development (unoptimized, hot-reloading). For a real
+deployment, build the app once and run the optimized production server instead:
+
+**1. Set production environment variables.** Don't reuse the local dev `.env` — it has a
+placeholder `AUTH_SECRET` meant only for `npm run dev`. Create a separate `.env.production`
+(or set real environment variables on the host) with:
+
+```
+DATABASE_URL="file:./prod.db"
+AUTH_SECRET="<generate a long random string>"
+NEXTAUTH_URL="https://your-domain.com"
+```
+
+Generate `AUTH_SECRET` in PowerShell:
+
+```powershell
+$bytes = New-Object byte[](32)
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+[Convert]::ToBase64String($bytes)
+```
+
+**2. Install dependencies and apply database migrations non-interactively.**
+
+```powershell
+npm ci
+npm run db:migrate:deploy
+```
+
+**3. Build the optimized production bundle.**
 
 ```powershell
 npm run build
+```
+
+**4. Start the production server.** `next start` (unlike `next dev`) runs the compiled,
+optimized build — no hot-reload, no dev overlay:
+
+```powershell
 npm run start
 ```
+
+By default this listens on port `3000` on all interfaces. To use a different port, either
+set the `PORT` environment variable or pass `-- -p <port>`:
+
+```powershell
+$env:PORT = 8080
+npm run start
+```
+
+**5. Keep it running.** `npm run start` runs in the foreground and stops if the terminal
+closes or the process crashes. For a real deployment, run it under a process manager that
+restarts it automatically and starts it on boot — e.g. [pm2](https://pm2.keymetrics.io/):
+
+```powershell
+npm install -g pm2
+pm2 start npm --name rentalhrm -- run start
+pm2 save
+```
+
+Prefer an isolated, reproducible deployment instead? See "Docker deployment" below — it
+wraps all of the steps above (migrations, build, start, restart policy) into a single
+`docker compose up`.
+
+### Creating the Super Admin account (production)
+
+The Super Admin is the one account that belongs to no workspace and can see/manage every
+workspace on the platform (see "Demo accounts" below for what it can do). There's no
+`/signup` for it — self-service signup only creates workspace **Administrators**. `npm run
+db:seed` does create a Super Admin, but with a hardcoded demo password and a pile of
+unrelated sample data, so it's dev/demo-only and unsuitable for production.
+
+Instead, use `prisma/create-super-admin.ts` (via `npm run db:create-super-admin`), which
+only ever touches the Super Admin account and always requires a real name/email/password
+supplied through environment variables — nothing hardcoded, no demo data:
+
+```powershell
+$env:SUPER_ADMIN_NAME = "Jane Doe"
+$env:SUPER_ADMIN_EMAIL = "jane@example.com"
+$env:SUPER_ADMIN_PASSWORD = "<a strong, unique password>"
+npm run db:create-super-admin
+```
+
+Run this once after `npm run db:migrate:deploy` has created the database schema. Sign in
+at `/login` with the email/password above and the **Workspace** field left blank.
+
+Re-running the command with the same email updates that Super Admin's name/password
+instead of creating a duplicate, so it also works as a password-reset tool if you ever
+need to rotate the credentials.
 
 ### Demo accounts (created by `npm run db:seed`) — or start fresh at `/signup`
 
@@ -245,8 +329,24 @@ docker compose --env-file .env.docker ps
 docker compose --env-file .env.docker logs -f app
 ```
 
-**4. Open the app** at the URL you set in `NEXTAUTH_URL` and either go to `/signup` to
-create your own workspace and walk through the setup wizard, or seed demo data first:
+**4. Create the Super Admin account.** This is the platform-wide account (see "Creating
+the Super Admin account (production)" above) — there's no hardcoded default in the
+container, so create one with a real password using `docker compose exec` and `-e` to
+pass the credentials in:
+
+```powershell
+docker compose --env-file .env.docker exec `
+  -e SUPER_ADMIN_NAME="Jane Doe" `
+  -e SUPER_ADMIN_EMAIL="jane@example.com" `
+  -e SUPER_ADMIN_PASSWORD="<a strong, unique password>" `
+  app npx tsx prisma/create-super-admin.ts
+```
+
+**5. Open the app** at the URL you set in `NEXTAUTH_URL`. Sign in as the Super Admin you
+just created (Workspace field left blank) to create/manage workspaces, or go to `/signup`
+to create a regular workspace + Administrator and walk through the setup wizard. If you'd
+rather explore with ready-made sample data instead, seed the demo accounts (hardcoded demo
+passwords — never do this in a real deployment):
 
 ```powershell
 docker compose --env-file .env.docker exec app npx prisma db seed
@@ -254,7 +354,7 @@ docker compose --env-file .env.docker exec app npx prisma db seed
 
 then sign in with the demo accounts listed above.
 
-**5. Stop it** (data is preserved in the volumes):
+**6. Stop it** (data is preserved in the volumes):
 
 ```powershell
 docker compose --env-file .env.docker down
@@ -321,6 +421,9 @@ npm run docker:down    # docker compose down  (stops containers, keeps volumes/d
 - `npm run db:migrate` — run Prisma migrations (dev).
 - `npm run db:migrate:deploy` — apply migrations non-interactively (used in Docker/production).
 - `npm run db:seed` — re-seed demo data.
+- `npm run db:create-super-admin` — create (or reset the password of) the platform Super
+  Admin account from `SUPER_ADMIN_NAME`/`SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` env vars
+  (safe for production — see "Creating the Super Admin account (production)" above).
 - `npm run db:studio` — open Prisma Studio to browse the database.
 - `npm run clean` — remove compiled/build output (`.next`, `*.tsbuildinfo`, `next-env.d.ts`).
 - `npm run clean:all` — same as `clean`, plus removes `node_modules`.
