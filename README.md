@@ -27,9 +27,11 @@ history — with role-based access control.
   — switching is just entering a different workspace name at login) and manage Manager/Staff/Viewer
   accounts within their own workspace.
 - **Self-service sign-up + setup wizard** — anyone can create their own workspace from `/signup`
-  (workspace name, their name, email, password) without needing an invite. They're signed in
-  automatically and walked through a 5-step **setup wizard** (`/setup`): currency, first
-  apartment, first room, water/electricity utility rates, then a summary of what was configured.
+  (workspace name, their name, email, password) without needing an invite (this page can be
+  disabled per-deployment via `ALLOW_SELF_SIGNUP=false`, so only the Super Admin creates
+  workspaces — see "Environment variables"). They're signed in automatically and walked through
+  a 5-step **setup wizard** (`/setup`): currency, first apartment, first room, water/electricity
+  utility rates, then a summary of what was configured.
   Every step can be skipped and finished later — a banner reminds the Administrator to finish
   setup until they do.
 - **Apartments** — create/edit apartment buildings, an optional map link (opens the location in
@@ -242,7 +244,9 @@ RentalHRM is multi-tenant: every account except the Super Admin belongs to a **w
 
 You don't have to seed demo data to try the app — open
 [http://localhost:3000/signup](http://localhost:3000/signup) to create your own workspace
-and administrator account, then follow the setup wizard. If you'd rather explore with
+and administrator account, then follow the setup wizard (unless `/signup` has been disabled
+via `ALLOW_SELF_SIGNUP=false` — see "Environment variables" below — in which case a Super
+Admin must create workspaces from `/super-admin` instead). If you'd rather explore with
 ready-made sample data instead, run `npm run db:seed` and use these accounts (logging in
 as anything other than the Super Admin requires the workspace's login name as well as an
 email/password):
@@ -276,7 +280,15 @@ Copy `.env` (already included with sane local defaults) and adjust for productio
 DATABASE_URL="file:./dev.db"
 AUTH_SECRET="<generate a long random string>"
 NEXTAUTH_URL="https://your-domain.com"
+ALLOW_SELF_SIGNUP="true"
 ```
+
+- `ALLOW_SELF_SIGNUP` — controls whether the public `/signup` page (self-service
+  workspace + administrator creation) is reachable. Defaults to **enabled** when unset.
+  Set to `"false"` to disable it entirely — the "Create your workspace" link disappears
+  from `/login` and `/signup` itself redirects away — so the only way to create a
+  workspace is via the Super Admin's **New workspace** button in `/super-admin`, making
+  every user in the system one the Super Admin explicitly created.
 
 ## Docker deployment
 
@@ -312,6 +324,10 @@ Open `.env.docker` and set:
 - `NEXTAUTH_URL` — the public URL this deployment will be reached at (e.g.
   `http://localhost:3000` for local testing, or `https://your-domain.com` in production).
 - `APP_PORT` — the host port to publish the app on (defaults to `3000`).
+- `ALLOW_SELF_SIGNUP` — defaults to `false` in this template, so the public `/signup`
+  page is disabled and the Super Admin is the only one who can create workspaces. Set to
+  `true` if you want to allow anyone to create their own workspace instead.
+
 
 **2. Build and start the container.**
 

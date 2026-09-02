@@ -12,6 +12,7 @@ services:
       DATABASE_URL: "file:/app/data/prod.db"
       AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET in .env.docker — see .env.docker.example}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
+      ALLOW_SELF_SIGNUP: "${ALLOW_SELF_SIGNUP:-false}"
     volumes:
       # Persist the SQLite database across container restarts/rebuilds.
       - db-data:/app/data

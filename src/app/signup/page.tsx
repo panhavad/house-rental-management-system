@@ -1,7 +1,18 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SignupForm } from "@/app/signup/SignupForm";
+import { isSelfSignupEnabled } from "@/lib/config";
+
+// Without this, Next.js prerenders the page once at build time and freezes the
+// isSelfSignupEnabled() check against the build-time environment — so a
+// deployment's real ALLOW_SELF_SIGNUP value (only known at container runtime)
+// would never actually take effect. Forcing dynamic rendering makes it
+// re-evaluate on every request instead.
+export const dynamic = "force-dynamic";
 
 export default function SignupPage() {
+  if (!isSelfSignupEnabled()) redirect("/login");
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">

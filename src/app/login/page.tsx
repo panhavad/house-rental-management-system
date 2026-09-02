@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LoginForm } from "@/app/login/LoginForm";
+import { isSelfSignupEnabled } from "@/lib/config";
 
 export default async function LoginPage({
   searchParams,
@@ -16,12 +17,14 @@ export default async function LoginPage({
           <p className="mt-1 text-sm text-slate-500">Sign in to manage your rental properties</p>
         </div>
         <LoginForm callbackUrl={callbackUrl} />
-        <p className="mt-6 text-center text-sm text-slate-500">
-          New here?{" "}
-          <Link href="/signup" className="font-medium text-slate-900 hover:underline">
-            Create your workspace
-          </Link>
-        </p>
+        {isSelfSignupEnabled() ? (
+          <p className="mt-6 text-center text-sm text-slate-500">
+            New here?{" "}
+            <Link href="/signup" className="font-medium text-slate-900 hover:underline">
+              Create your workspace
+            </Link>
+          </p>
+        ) : null}
       </div>
     </div>
   );
