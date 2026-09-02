@@ -9,7 +9,8 @@ import { LinkButton } from "@/components/ui/Button";
 import { RoomStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { deleteApartment } from "@/app/(app)/apartments/actions";
-import { DoorOpen, Pencil, MapPin, Users } from "lucide-react";
+import { duplicateRoom } from "@/app/(app)/rooms/actions";
+import { DoorOpen, Pencil, MapPin, Users, Copy } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 
 export default async function ApartmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +33,7 @@ export default async function ApartmentDetailPage({ params }: { params: Promise<
   if (!apartment) notFound();
 
   const canWrite = hasPermission(matrix, user.role, PERMISSIONS.APARTMENTS_WRITE);
+  const canWriteRooms = hasPermission(matrix, user.role, PERMISSIONS.ROOMS_WRITE);
   const peopleStaying = apartment.rooms.reduce(
     (sum, room) => sum + room.contracts.reduce((s, c) => s + c.occupants, 0),
     0
@@ -91,20 +93,31 @@ export default async function ApartmentDetailPage({ params }: { params: Promise<
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {apartment.rooms.map((room) => (
-            <Link key={room.id} href={`/rooms/${room.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardBody>
+            <Card key={room.id} className="h-full transition-shadow hover:shadow-md">
+              <CardBody>
+                <Link href={`/rooms/${room.id}`} className="block">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-slate-900">{room.name}</h3>
+                    <h3 className="font-semibold text-slate-900 hover:underline">{room.name}</h3>
                     <RoomStatusBadge status={room.status} />
                   </div>
                   <p className="mt-1 text-sm text-slate-500">{room.type}</p>
                   <p className="mt-2 text-sm font-medium text-slate-700">
                     {formatMoney(room.rentalFee, settings)}/mo
                   </p>
-                </CardBody>
-              </Card>
-            </Link>
+                </Link>
+                {canWriteRooms ? (
+                  <form action={duplicateRoom.bind(null, room.id)} className="mt-3">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
+                    >
+                      <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      Duplicate
+                    </button>
+                  </form>
+                ) : null}
+              </CardBody>
+            </Card>
           ))}
         </div>
       )}

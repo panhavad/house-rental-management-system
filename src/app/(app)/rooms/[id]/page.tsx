@@ -5,12 +5,12 @@ import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { LinkButton } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { RoomStatusBadge, ContractStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
-import { deleteRoom, startContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
+import { deleteRoom, duplicateRoom, startContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
 import { StartContractForm, TerminateContractForm, UploadDocumentForm } from "@/app/(app)/rooms/[id]/ContractForms";
-import { Pencil, CheckCircle2, Users, QrCode } from "lucide-react";
+import { Pencil, CheckCircle2, Users, QrCode, Copy } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 import { ContractDocumentGrid } from "@/components/ui/ContractDocumentPreview";
 import { generateQrDataUrl, roomUtilityReadingUrl } from "@/lib/qrcode";
@@ -56,6 +56,11 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
               <LinkButton href={`/rooms/${room.id}/edit`} variant="secondary" icon={Pencil}>
                 Edit
               </LinkButton>
+              <form action={duplicateRoom.bind(null, room.id)}>
+                <Button type="submit" variant="secondary" icon={Copy}>
+                  Duplicate
+                </Button>
+              </form>
               <DeleteButton
                 action={deleteRoom.bind(null, room.id)}
                 confirmMessage={`Delete room "${room.name}"? This cannot be undone.`}

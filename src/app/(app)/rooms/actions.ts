@@ -60,6 +60,48 @@ export async function createRoom(formData: FormData) {
   redirect(`/rooms/${room.id}`);
 }
 
+/**
+ * Clones a room's details (type, size, rentalFee, notes, facilities, etc. — but
+ * never its status/contracts/payments) into a brand-new VACANT room in the same
+ * apartment, then sends the user straight to its edit page so all they need to do
+ * is change the name. Meant for quickly bulk-creating many similar rooms.
+ */
+export async function duplicateRoom(roomId: string) {
+  const user = await requirePermission(PERMISSIONS.ROOMS_WRITE);
+  const existing = await prisma.room.findFirst({
+    where: { id: roomId, apartment: { workspaceId: user.workspaceId } },
+    include: { facilities: true },
+  });
+  if (!existing) notFound();
+
+  const room = await prisma.room.create({
+    data: {
+      apartmentId: existing.apartmentId,
+      name: `${existing.name} (Copy)`,
+      type: existing.type,
+      size: existing.size,
+      floor: existing.floor,
+      floorPlanUrl: existing.floorPlanUrl,
+      rentalFee: existing.rentalFee,
+      notes: existing.notes,
+      facilities: { create: existing.facilities.map((f) => ({ facilityId: f.facilityId })) },
+    },
+  });
+
+  await logActivity({
+    workspaceId: user.workspaceId,
+    entityType: "ROOM",
+    entityId: room.id,
+    roomId: room.id,
+    action: "ROOM_CREATED",
+    description: `Room "${room.name}" was created by duplicating "${existing.name}".`,
+    performedById: user.id,
+  });
+
+  revalidatePath(`/apartments/${existing.apartmentId}`);
+  redirect(`/rooms/${room.id}/edit`);
+}
+
 export async function updateRoom(roomId: string, formData: FormData) {
   const user = await requirePermission(PERMISSIONS.ROOMS_WRITE);
   const existing = await prisma.room.findFirst({
