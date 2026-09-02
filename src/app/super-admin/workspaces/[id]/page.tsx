@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
+import { RestoreButton } from "@/components/ui/RestoreButton";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { setWorkspaceActive, enterWorkspace, unloadDemoDataAction } from "@/app/super-admin/actions";
-import { Ban, CheckCircle2, LogIn, Trash2 } from "lucide-react";
+import { restoreSpecificWorkspaceBackupAction } from "@/app/super-admin/backup-actions";
+import { Ban, CheckCircle2, LogIn, Trash2, Download } from "lucide-react";
 
 export default async function SuperAdminWorkspaceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +37,14 @@ export default async function SuperAdminWorkspaceDetailPage({ params }: { params
                 </Button>
               </form>
             ) : null}
+            <LinkButton href={`/api/backup/export?workspaceId=${workspace.id}`} variant="secondary" icon={Download}>
+              Backup
+            </LinkButton>
+            <RestoreButton
+              action={restoreSpecificWorkspaceBackupAction.bind(null, workspace.id)}
+              label="Restore"
+              confirmMessage={`Restore from "{filename}"? This will permanently replace ALL current data in "${workspace.name}" with the selected backup file. This cannot be undone.`}
+            />
             {workspace.isDemo ? (
               <form action={unloadDemoDataAction}>
                 <Button type="submit" variant="danger" icon={Trash2}>
@@ -96,3 +106,4 @@ export default async function SuperAdminWorkspaceDetailPage({ params }: { params
     </div>
   );
 }
+

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Lock,
   Layers,
+  DatabaseBackup,
   LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const ADMIN_ONLY_NAV_ITEMS: NavItem[] = [
   { href: "/settings/currency", label: "Currency", icon: Coins },
   { href: "/settings/roles", label: "Roles & permissions", icon: Lock },
   { href: "/settings/workspaces", label: "Workspaces", icon: Layers },
+  { href: "/settings/backup", label: "Backup & restore", icon: DatabaseBackup },
 ];
 
 export const MY_ACCESS_NAV_ITEM: NavItem = { href: "/permissions", label: "My access", icon: ShieldCheck };
