@@ -11,7 +11,7 @@ export function slugify(name: string): string {
 }
 
 /** Appends -2, -3, ... to a slug until it's unique among workspaces. */
-async function uniqueSlug(base: string): Promise<string> {
+export async function uniqueSlug(base: string): Promise<string> {
   const root = base || "workspace";
   let candidate = root;
   let n = 1;

@@ -5,8 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ROLE_LABELS } from "@/lib/rbac";
-import { setWorkspaceActive, enterWorkspace } from "@/app/super-admin/actions";
-import { Ban, CheckCircle2, LogIn } from "lucide-react";
+import { setWorkspaceActive, enterWorkspace, unloadDemoDataAction } from "@/app/super-admin/actions";
+import { Ban, CheckCircle2, LogIn, Trash2 } from "lucide-react";
 
 export default async function SuperAdminWorkspaceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,6 +27,7 @@ export default async function SuperAdminWorkspaceDetailPage({ params }: { params
         description={`/${workspace.slug} · ${workspace._count.apartments} apartment(s)`}
         actions={
           <>
+            {workspace.isDemo ? <Badge tone="blue">Demo</Badge> : null}
             {workspace.isActive ? (
               <form action={enterWorkspace.bind(null, workspace.id)}>
                 <Button type="submit" icon={LogIn}>
@@ -34,21 +35,29 @@ export default async function SuperAdminWorkspaceDetailPage({ params }: { params
                 </Button>
               </form>
             ) : null}
-            <form action={setWorkspaceActive.bind(null, workspace.id, !workspace.isActive)}>
-              <button
-                type="submit"
-                className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium text-white ${
-                  workspace.isActive ? "bg-red-600 hover:bg-red-500" : "bg-green-600 hover:bg-green-500"
-                }`}
-              >
-                {workspace.isActive ? (
-                  <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                )}
-                {workspace.isActive ? "Disable workspace" : "Enable workspace"}
-              </button>
-            </form>
+            {workspace.isDemo ? (
+              <form action={unloadDemoDataAction}>
+                <Button type="submit" variant="danger" icon={Trash2}>
+                  Unload demo data
+                </Button>
+              </form>
+            ) : (
+              <form action={setWorkspaceActive.bind(null, workspace.id, !workspace.isActive)}>
+                <button
+                  type="submit"
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium text-white ${
+                    workspace.isActive ? "bg-red-600 hover:bg-red-500" : "bg-green-600 hover:bg-green-500"
+                  }`}
+                >
+                  {workspace.isActive ? (
+                    <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  )}
+                  {workspace.isActive ? "Disable workspace" : "Enable workspace"}
+                </button>
+              </form>
+            )}
           </>
         }
       />

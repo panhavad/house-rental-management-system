@@ -9,6 +9,8 @@ export async function logActivity(params: {
   description: string;
   performedById?: string | null;
   metadata?: Record<string, unknown>;
+  /** Backdates the log entry (used by demo-data seeding to build a realistic history). Defaults to now. */
+  createdAt?: Date;
 }) {
   await prisma.activityLog.create({
     data: {
@@ -20,6 +22,7 @@ export async function logActivity(params: {
       description: params.description,
       performedById: params.performedById ?? null,
       metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+      createdAt: params.createdAt ?? undefined,
     },
   });
 }

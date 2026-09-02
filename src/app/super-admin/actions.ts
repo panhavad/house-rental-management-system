@@ -7,6 +7,7 @@ import { hash } from "bcryptjs";
 import { requireSuperAdmin, IMPERSONATE_COOKIE } from "@/lib/auth-guard";
 import { createWorkspaceWithAdmin } from "@/lib/workspace";
 import { prisma } from "@/lib/prisma";
+import { loadDemoData, unloadDemoData } from "@/lib/demo-data";
 
 export async function createWorkspaceAction(formData: FormData) {
   await requireSuperAdmin();
@@ -61,4 +62,26 @@ export async function enterWorkspace(workspaceId: string) {
   });
 
   redirect("/");
+}
+
+/**
+ * Loads (or refreshes) the demo workspace: two fully furnished apartments covering
+ * every room/contract/payment status, utility readings, rate history, and a demo
+ * login account per role. Always rebuilds from scratch so dates stay relative to
+ * "today". Completely isolated in its own workspace — never touches any real
+ * workspace or user.
+ */
+export async function loadDemoDataAction() {
+  await requireSuperAdmin();
+  const { workspace } = await loadDemoData();
+  revalidatePath("/super-admin");
+  redirect(`/super-admin/workspaces/${workspace.id}`);
+}
+
+/** Deletes the demo workspace and everything in it. A no-op if none is loaded. */
+export async function unloadDemoDataAction() {
+  await requireSuperAdmin();
+  await unloadDemoData();
+  revalidatePath("/super-admin");
+  redirect("/super-admin");
 }

@@ -49,6 +49,10 @@ model Workspace {
   slug                 String    @unique
   isActive             Boolean   @default(true)
   onboardingCompletedAt DateTime?
+  /// Marks the single, always-replaceable demo workspace created by the super admin's
+  /// "Load demo data" action, so it can be found and torn down without touching any
+  /// real workspace/user.
+  isDemo               Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
