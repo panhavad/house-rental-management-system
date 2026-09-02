@@ -75,6 +75,20 @@ export async function saveContractDocuments(
   return saved;
 }
 
+/** Saves a server-generated PDF (e.g. the auto-drafted rental agreement) alongside any uploaded documents. */
+export async function saveGeneratedContractPdf(bytes: Uint8Array, contractId: string): Promise<SavedContractDocument> {
+  await mkdir(UPLOAD_DIR, { recursive: true });
+
+  const filename = `${uniqueBaseName(contractId)}-agreement.pdf`;
+  await writeFile(path.join(UPLOAD_DIR, filename), bytes);
+
+  return {
+    url: `/uploads/contracts/${filename}`,
+    thumbnailUrl: null,
+    fileType: "pdf",
+  };
+}
+
 /** Best-effort removal of a previously stored contract document and its thumbnail. */
 export async function deleteContractDocumentFiles(doc: {
   url?: string | null;

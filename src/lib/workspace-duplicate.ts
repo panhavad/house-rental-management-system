@@ -47,6 +47,12 @@ export async function duplicateWorkspace(
         });
       }
 
+      if (snapshot.contractTemplate) {
+        await tx.contractTemplate.create({
+          data: { workspaceId: workspace.id, content: snapshot.contractTemplate.content },
+        });
+      }
+
       if (snapshot.rolePermissions.length) {
         await tx.rolePermission.createMany({
           data: snapshot.rolePermissions.map((rp) => ({

@@ -12,6 +12,7 @@ import {
   Lock,
   Layers,
   DatabaseBackup,
+  FileSignature,
   LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/logs", label: "Activity log", icon: History },
   { href: "/settings/facilities", label: "Facilities", icon: Wrench },
   { href: "/settings/rates", label: "Utility rates", icon: Gauge },
+  { href: "/settings/contract-template", label: "Contract template", icon: FileSignature },
   { href: "/settings/workspaces", label: "Workspaces", icon: Layers },
 ];
 

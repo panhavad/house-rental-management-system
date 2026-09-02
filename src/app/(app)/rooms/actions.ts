@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-guard";
 import { PERMISSIONS } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
-import { saveContractDocuments, deleteContractDocumentFiles } from "@/lib/contract-document";
+import { saveContractDocuments, saveGeneratedContractPdf, deleteContractDocumentFiles } from "@/lib/contract-document";
+import { generateContractAgreementPdf, type ContractPdfData } from "@/lib/contract-pdf";
+import { getWorkspaceContractTemplate } from "@/lib/contract-template";
+import { getAppSettings } from "@/lib/currency";
 
 function parseFacilityIds(formData: FormData): string[] {
   return formData.getAll("facilityIds").map(String);
@@ -174,13 +177,21 @@ export async function deleteRoom(roomId: string) {
   redirect(`/apartments/${room.apartmentId}`);
 }
 
-export async function startContract(roomId: string, formData: FormData) {
-  const user = await requirePermission(PERMISSIONS.CONTRACTS_WRITE);
-  const room = await prisma.room.findFirst({
-    where: { id: roomId, apartment: { workspaceId: user.workspaceId } },
-  });
-  if (!room) notFound();
+type ContractFormFields = {
+  tenantName: string;
+  tenantPhone: string | null;
+  tenantEmail: string | null;
+  tenantIdNumber: string | null;
+  occupants: number;
+  rentalFee: number;
+  deposit: number;
+  startDate: Date;
+  endDate: Date;
+  notes: string | null;
+};
 
+/** Shared by `startContract` and `previewContract` so the preview always reflects exactly what starting the contract will produce. */
+function parseContractFormFields(formData: FormData): ContractFormFields {
   const tenantName = String(formData.get("tenantName") ?? "").trim();
   const tenantPhone = String(formData.get("tenantPhone") ?? "").trim() || null;
   const tenantEmail = String(formData.get("tenantEmail") ?? "").trim() || null;
@@ -195,6 +206,84 @@ export async function startContract(roomId: string, formData: FormData) {
   if (!tenantName || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
     throw new Error("Tenant name, start date and end date are required.");
   }
+
+  return { tenantName, tenantPhone, tenantEmail, tenantIdNumber, occupants, rentalFee, deposit, startDate, endDate, notes };
+}
+
+async function findContractRoom(roomId: string, workspaceId: string) {
+  const room = await prisma.room.findFirst({
+    where: { id: roomId, apartment: { workspaceId } },
+    include: { apartment: true, facilities: { include: { facility: true } } },
+  });
+  if (!room) notFound();
+  return room;
+}
+
+async function buildContractPdfData(opts: {
+  workspaceId: string;
+  room: Awaited<ReturnType<typeof findContractRoom>>;
+  fields: ContractFormFields;
+  contractId: string | null;
+  workspaceName: string;
+  preparedByName: string;
+  isPreview: boolean;
+}): Promise<ContractPdfData> {
+  const settings = await getAppSettings(opts.workspaceId);
+  return {
+    contract: { id: opts.contractId, ...opts.fields },
+    room: { name: opts.room.name, type: opts.room.type, size: opts.room.size, floor: opts.room.floor },
+    apartment: { name: opts.room.apartment.name, address: opts.room.apartment.address },
+    workspaceName: opts.workspaceName,
+    facilityNames: opts.room.facilities.map((f) => f.facility.name),
+    settings,
+    preparedByName: opts.preparedByName,
+    generatedAt: new Date(),
+    isPreview: opts.isPreview,
+  };
+}
+
+/**
+ * Generates the same agreement PDF `startContract` would produce, without
+ * writing anything to the database — lets the "Start contract" form preview
+ * the document (and iterate on the entered details) before officially
+ * starting the lease. Returns the PDF as base64 so it can cross the
+ * server-action boundary as plain serializable data.
+ */
+export async function previewContract(roomId: string, formData: FormData): Promise<{ pdfBase64: string } | { error: string }> {
+  const user = await requirePermission(PERMISSIONS.CONTRACTS_WRITE);
+  const room = await findContractRoom(roomId, user.workspaceId);
+
+  let fields: ContractFormFields;
+  try {
+    fields = parseContractFormFields(formData);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Please fill in the required contract details." };
+  }
+
+  try {
+    const templateContent = await getWorkspaceContractTemplate(user.workspaceId);
+    const data = await buildContractPdfData({
+      workspaceId: user.workspaceId,
+      room,
+      fields,
+      contractId: null,
+      workspaceName: user.workspaceName ?? "RentalHRM",
+      preparedByName: user.name ?? "Property Manager",
+      isPreview: true,
+    });
+    const pdfBytes = await generateContractAgreementPdf(data, templateContent);
+    return { pdfBase64: Buffer.from(pdfBytes).toString("base64") };
+  } catch (error) {
+    console.error("Failed to generate contract preview PDF:", error);
+    return { error: "Couldn't generate the preview PDF. Please try again." };
+  }
+}
+
+export async function startContract(roomId: string, formData: FormData) {
+  const user = await requirePermission(PERMISSIONS.CONTRACTS_WRITE);
+  const room = await findContractRoom(roomId, user.workspaceId);
+  const fields = parseContractFormFields(formData);
+  const { tenantName, tenantPhone, tenantIdNumber, tenantEmail, occupants, rentalFee, deposit, startDate, endDate, notes } = fields;
 
   const [contract] = await prisma.$transaction([
     prisma.contract.create({
@@ -211,6 +300,27 @@ export async function startContract(roomId: string, formData: FormData) {
         data: saved.map((doc) => ({ contractId: contract.id, ...doc })),
       });
     }
+  }
+
+  // Auto-draft a print-ready rental agreement PDF from everything just
+  // entered, attached as a contract document alongside any manual uploads.
+  try {
+    const templateContent = await getWorkspaceContractTemplate(user.workspaceId);
+    const data = await buildContractPdfData({
+      workspaceId: user.workspaceId,
+      room,
+      fields: contract,
+      contractId: contract.id,
+      workspaceName: user.workspaceName ?? "RentalHRM",
+      preparedByName: user.name ?? "Property Manager",
+      isPreview: false,
+    });
+    const pdfBytes = await generateContractAgreementPdf(data, templateContent);
+    const savedAgreement = await saveGeneratedContractPdf(pdfBytes, contract.id);
+    await prisma.contractDocument.create({ data: { contractId: contract.id, ...savedAgreement } });
+  } catch (error) {
+    // A PDF generation hiccup shouldn't block the contract itself from being created.
+    console.error("Failed to generate contract agreement PDF:", error);
   }
 
   await logActivity({

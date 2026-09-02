@@ -56,13 +56,14 @@ model Workspace {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  users           User[]
-  apartments      Apartment[]
-  facilities      Facility[]
-  utilityRates    UtilityRate[]
-  appSetting      AppSetting?
-  rolePermissions RolePermission[]
-  activityLogs    ActivityLog[]
+  users            User[]
+  apartments       Apartment[]
+  facilities       Facility[]
+  utilityRates     UtilityRate[]
+  appSetting       AppSetting?
+  rolePermissions  RolePermission[]
+  activityLogs     ActivityLog[]
+  contractTemplate ContractTemplate?
 }
 
 /**
@@ -85,6 +86,23 @@ model AppSetting {
   currency     Currency @default(USD)
   exchangeRate Float    @default(4100)
   updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * One editable lease-agreement template per workspace (falls back to the
+ * built-in default when absent). Plain text using `{{placeholder}}` tokens
+ * plus a lightweight markup: a leading `# Title` line overrides the document
+ * title, `## Heading` starts a numbered section, and lines shaped like
+ * `Label: {{value}}` render as a labeled field that's silently omitted when
+ * the value is empty — see src/lib/contract-pdf.ts for the renderer.
+ */
+model ContractTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String   @unique
+  content     String
+  updatedAt   DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

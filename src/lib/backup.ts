@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type {
   Workspace,
   AppSetting,
+  ContractTemplate,
   RolePermission,
   User,
   Facility,
@@ -51,6 +52,7 @@ export type WorkspaceBackup = {
   appVersion: string;
   workspace: Workspace;
   appSetting: AppSetting | null;
+  contractTemplate: ContractTemplate | null;
   rolePermissions: RolePermission[];
   users: User[];
   facilities: Facility[];
@@ -86,6 +88,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
 
   const [
     appSetting,
+    contractTemplate,
     rolePermissions,
     users,
     facilities,
@@ -100,6 +103,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
     activityLogs,
   ] = await Promise.all([
     prisma.appSetting.findUnique({ where: { workspaceId } }),
+    prisma.contractTemplate.findUnique({ where: { workspaceId } }),
     prisma.rolePermission.findMany({ where: { workspaceId } }),
     prisma.user.findMany({ where: { workspaceId } }),
     prisma.facility.findMany({ where: { workspaceId } }),
@@ -120,6 +124,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
     appVersion: APP_VERSION,
     workspace,
     appSetting,
+    contractTemplate,
     rolePermissions,
     users,
     facilities,
@@ -243,6 +248,7 @@ export async function restoreWorkspaceBackup(backup: WorkspaceBackup): Promise<{
         await tx.rolePermission.deleteMany({ where: { workspaceId } });
         await tx.activityLog.deleteMany({ where: { workspaceId } });
         await tx.appSetting.deleteMany({ where: { workspaceId } });
+        await tx.contractTemplate.deleteMany({ where: { workspaceId } });
 
         await tx.workspace.upsert({
           where: { id: workspaceId },
@@ -257,6 +263,7 @@ export async function restoreWorkspaceBackup(backup: WorkspaceBackup): Promise<{
         });
 
         if (backup.appSetting) await tx.appSetting.create({ data: backup.appSetting });
+        if (backup.contractTemplate) await tx.contractTemplate.create({ data: backup.contractTemplate });
         if (backup.rolePermissions.length) await tx.rolePermission.createMany({ data: backup.rolePermissions });
         if (backup.users.length) await tx.user.createMany({ data: backup.users });
         if (backup.facilities.length) await tx.facility.createMany({ data: backup.facilities });

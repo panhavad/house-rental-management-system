@@ -8,7 +8,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { RoomStatusBadge, ContractStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
-import { deleteRoom, duplicateRoom, startContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
+import { deleteRoom, duplicateRoom, startContract, previewContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
 import { StartContractForm, TerminateContractForm, UploadDocumentForm } from "@/app/(app)/rooms/[id]/ContractForms";
 import { Pencil, CheckCircle2, Users, QrCode, Copy } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
@@ -201,7 +201,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
               ) : canWriteContract ? (
-                <StartContractForm action={startContract.bind(null, room.id)} />
+                <StartContractForm action={startContract.bind(null, room.id)} previewAction={previewContract.bind(null, room.id)} />
               ) : (
                 <p className="text-sm text-slate-500">No active contract.</p>
               )}
