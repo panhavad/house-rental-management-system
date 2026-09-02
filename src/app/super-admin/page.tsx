@@ -62,8 +62,8 @@ export default async function SuperAdminDashboardPage() {
           demoWorkspace ? (
             <>
               Loaded — 2 fully furnished apartments with contracts, utilities and payments in every status.
-              Sign in with workspace <span className="font-mono font-medium">{demoWorkspace.slug}</span> and
-              any account below. Loaded {demoWorkspace.createdAt.toLocaleString()}.
+              Sign in with any account below (email + password only — no workspace to pick, this email isn&apos;t
+              used anywhere else). Loaded {demoWorkspace.createdAt.toLocaleString()}.
             </>
           ) : (
             "Load a self-contained demo workspace (2 apartments, contracts, utility readings, due payments, " +

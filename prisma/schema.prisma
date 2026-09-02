@@ -65,6 +65,20 @@ model Workspace {
   activityLogs    ActivityLog[]
 }
 
+/**
+ * Remembers which workspace a login email should jump straight into when the
+ * same email has valid credentials for more than one workspace (or both a
+ * workspace and the platform Super Admin). Deliberately has no foreign key to
+ * Workspace: if the referenced workspace is later deleted, this row is simply
+ * ignored by anything that reads it (falls back to showing the picker again)
+ * instead of needing cascading cleanup.
+ */
+model LoginPreference {
+  email              String   @id
+  defaultWorkspaceId String?
+  updatedAt          DateTime @updatedAt
+}
+
 model AppSetting {
   id           String   @id @default(cuid())
   workspaceId  String   @unique

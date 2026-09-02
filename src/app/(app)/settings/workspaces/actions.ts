@@ -6,11 +6,12 @@ import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { createAdditionalWorkspace } from "@/lib/workspace";
 import { logActivity } from "@/lib/activity-log";
+import { unstable_update } from "@/auth";
 
 /**
  * Lets an existing admin spin up an additional, fully separate workspace for
- * themselves — reusing their current email + password so they can sign in to
- * either one just by changing the workspace name at login.
+ * themselves — reusing their current email + password so they can switch to
+ * it instantly from the workspace switcher (no need to log out and back in).
  */
 export async function createOwnWorkspace(formData: FormData) {
   const actor = await requireWorkspaceUser();
@@ -39,6 +40,24 @@ export async function createOwnWorkspace(formData: FormData) {
     performedById: admin.id,
   });
 
+  if (!actor.impersonating) {
+    await unstable_update({
+      user: {
+        availableWorkspaces: [
+          ...actor.availableWorkspaces,
+          {
+            userId: admin.id,
+            role: admin.role,
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            workspaceSlug: workspace.slug,
+          },
+        ],
+      },
+    });
+  }
+
   revalidatePath("/settings/workspaces");
   redirect("/settings/workspaces");
 }
+

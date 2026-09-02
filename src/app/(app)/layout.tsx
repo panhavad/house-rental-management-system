@@ -2,6 +2,7 @@ import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { MobileIconNav } from "@/components/ui/MobileIconNav";
+import { WorkspaceSwitcher } from "@/components/ui/WorkspaceSwitcher";
 import { logoutAction } from "@/lib/actions/logout";
 import { exitImpersonationAction } from "@/lib/actions/impersonation";
 import { LogOut, Bell, ShieldAlert, DoorOpen } from "lucide-react";
@@ -37,6 +38,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           RentalHRM{user.workspaceName ? <span className="ml-2 font-normal text-slate-400">· {user.workspaceName}</span> : null}
         </span>
         <div className="flex items-center gap-3">
+          {!user.impersonating ? (
+            <WorkspaceSwitcher
+              currentWorkspaceId={user.workspaceId}
+              workspaces={user.availableWorkspaces.map((w) => ({
+                workspaceId: w.workspaceId,
+                workspaceName: w.workspaceName,
+              }))}
+            />
+          ) : null}
           <Link
             href="/#needs-attention"
             title={attention.totalCount > 0 ? `${attention.totalCount} item(s) need attention` : "No pending reminders"}

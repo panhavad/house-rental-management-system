@@ -23,9 +23,15 @@ history — with role-based access control.
   any workspace to view and manage it exactly like that workspace's Administrator (a banner
   makes it obvious when they're doing this, with a one-click "Exit to Super Admin"; every action
   taken this way is still attributed to the Super Admin in the activity log). An **Administrator**
-  can create additional, fully separate workspaces for themselves (reusing the same email/password
-  — switching is just entering a different workspace name at login) and manage Manager/Staff/Viewer
-  accounts within their own workspace.
+  can create additional, fully separate workspaces for themselves (reusing the same email/password),
+  switch between all of them instantly from a dropdown in the header (no re-entering a password) or
+  from **Workspaces** in the navigation, set one as their default so login goes straight there, and
+  manage Manager/Staff/Viewer accounts within their own workspace.
+- **Sign in with just email + password** — the login form never asks which workspace up front. If
+  that email + password matches more than one account (e.g. an Administrator of several
+  workspaces, or someone who's both a workspace user and the Super Admin), a quick "continue as…"
+  step lists only the accounts it's actually valid for, with an optional "remember this as my
+  default" so it's skipped next time.
 - **Self-service sign-up + setup wizard** — anyone can create their own workspace from `/signup`
   (workspace name, their name, email, password) without needing an invite (this page can be
   disabled per-deployment via `ALLOW_SELF_SIGNUP=false`, so only the Super Admin creates
@@ -231,7 +237,8 @@ npm run db:create-super-admin
 ```
 
 Run this once after `npm run db:migrate:deploy` has created the database schema. Sign in
-at `/login` with the email/password above and the **Workspace** field left blank.
+at `/login` with the email/password above — since that email isn't used anywhere else, you'll
+go straight in with no extra step.
 
 Re-running the command with the same email updates that Super Admin's name/password
 instead of creating a duplicate, so it also works as a password-reset tool if you ever
@@ -247,27 +254,32 @@ You don't have to seed demo data to try the app — open
 and administrator account, then follow the setup wizard (unless `/signup` has been disabled
 via `ALLOW_SELF_SIGNUP=false` — see "Environment variables" below — in which case a Super
 Admin must create workspaces from `/super-admin` instead). If you'd rather explore with
-ready-made sample data instead, run `npm run db:seed` and use these accounts (logging in
-as anything other than the Super Admin requires the workspace's login name as well as an
-email/password):
+ready-made sample data instead, run `npm run db:seed` and use these accounts — just email +
+password, no workspace to pick since none of these emails are reused elsewhere:
 
-| Role          | Workspace | Email               | Password    |
-| ------------- | --------- | -------------------- | ----------- |
-| Super Admin   | *(leave blank)* | superadmin@hrm.local | SuperAdmin123! |
-| Administrator | default   | admin@hrm.local      | Admin123!   |
-| Manager       | default   | manager@hrm.local    | Manager123! |
-| Staff         | default   | staff@hrm.local      | Staff123!   |
-| Viewer        | default   | viewer@hrm.local     | Viewer123!  |
+| Role          | Email               | Password    |
+| ------------- | -------------------- | ----------- |
+| Super Admin   | superadmin@hrm.local | SuperAdmin123! |
+| Administrator | admin@hrm.local      | Admin123!   |
+| Manager       | manager@hrm.local    | Manager123! |
+| Staff         | staff@hrm.local      | Staff123!   |
+| Viewer        | viewer@hrm.local     | Viewer123!  |
 
-- **Super Admin** signs in with the Workspace field left blank. They see every workspace on
-  the platform (Settings are replaced by a `/super-admin` area), can create new workspaces
-  (each with its own first administrator), and can click **Enter workspace** on any workspace's
-  detail page to work inside it exactly like its Administrator — full view/modify access, with
-  a banner and one-click **Exit to Super Admin** to leave.
-- Every other role signs in with the **Workspace** login name (e.g. `default`) plus their
-  email and password. An Administrator can create additional, fully separate workspaces for
-  themselves from **Workspaces** in the navigation — switching workspace is just a matter of
-  entering a different workspace name at login with the same email/password.
+- **Super Admin** signs in the same way as everyone else — just email + password. They see every
+  workspace on the platform (Settings are replaced by a `/super-admin` area), can create new
+  workspaces (each with its own first administrator), and can click **Enter workspace** on any
+  workspace's detail page to work inside it exactly like its Administrator — full view/modify
+  access, with a banner and one-click **Exit to Super Admin** to leave.
+- Every other role signs in with just their email and password too. If that email + password is
+  valid for more than one account (e.g. an Administrator who's created several workspaces for
+  themselves, or someone who happens to be both the Super Admin and a workspace user), a quick
+  "continue as…" step lists only the matching accounts — with an optional "remember this as my
+  default workspace" so it's skipped on future logins. Once signed in, switch workspaces anytime
+  from the dropdown in the header or from **Workspaces** in the navigation — no password needed
+  again, since it's only ever offering accounts already proven valid at sign-in.
+- An Administrator can create additional, fully separate workspaces for themselves from
+  **Workspaces** in the navigation — it appears in the switcher immediately, no need to log out
+  and back in.
 - Within a workspace, an Administrator can create Manager/Staff/Viewer (and other
   Administrator) accounts from **Users**, and fine-tune exactly what each role can do from
   **Roles & permissions**.
@@ -359,9 +371,9 @@ docker compose --env-file .env.docker exec `
 ```
 
 **5. Open the app** at the URL you set in `NEXTAUTH_URL`. Sign in as the Super Admin you
-just created (Workspace field left blank) to create/manage workspaces, or go to `/signup`
-to create a regular workspace + Administrator and walk through the setup wizard. If you'd
-rather explore with ready-made sample data instead, seed the demo accounts (hardcoded demo
+just created (just email + password — no workspace to pick) to create/manage workspaces, or go
+to `/signup` to create a regular workspace + Administrator and walk through the setup wizard. If
+you'd rather explore with ready-made sample data instead, seed the demo accounts (hardcoded demo
 passwords — never do this in a real deployment):
 
 ```powershell
@@ -461,6 +473,10 @@ npm run docker:down    # docker compose down  (stops containers, keeps volumes/d
   `requirePermission()` helpers used in pages & actions.
 - `src/lib/workspace.ts` — workspace creation helpers (`createWorkspaceWithAdmin`,
   `createAdditionalWorkspace`, `getWorkspacesForAdminEmail`, slug generation).
+- `src/lib/login-candidates.ts` — `findLoginCandidates()`, the single source of truth for "which
+  account(s) does this email + password resolve to", used by both the login form and `auth.ts`.
+- `src/lib/actions/workspace-switch.ts` — `switchWorkspaceAction()` / `setDefaultWorkspaceAction()`,
+  backed by `unstable_update()` so switching never needs a password again.
 - `src/lib/currency.ts`, `src/lib/attention.ts`, `src/lib/qrcode.ts`, `src/lib/pagination.ts` —
   per-workspace currency conversion, dashboard "needs attention" queries, QR code generation, and
   shared pagination helpers.
@@ -469,8 +485,8 @@ npm run docker:down    # docker compose down  (stops containers, keeps volumes/d
   onboarding wizard) sharing a top-nav layout with breadcrumbs.
 - `src/app/super-admin/*` — the platform-wide area only the Super Admin can reach (list/create
   workspaces, enter a workspace, view its users, enable/disable a workspace).
-- `src/app/login` — the sign-in page (outside the app shell), with the Workspace/Email/Password
-  fields.
+- `src/app/login` — the sign-in page (outside the app shell). Just Email/Password; if that combo
+  resolves to more than one account, `LoginForm.tsx` shows a "continue as…" step in place.
 - `src/app/signup` — the public, self-service "create your workspace" page.
 - `Dockerfile` / `docker-compose.yml` / `docker-entrypoint.sh` — production container build
   (multi-stage: full deps to build, prod-only deps to run) and startup (applies pending

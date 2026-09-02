@@ -31,13 +31,13 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/logs", label: "Activity log", icon: History },
   { href: "/settings/facilities", label: "Facilities", icon: Wrench },
   { href: "/settings/rates", label: "Utility rates", icon: Gauge },
+  { href: "/settings/workspaces", label: "Workspaces", icon: Layers },
 ];
 
 export const ADMIN_ONLY_NAV_ITEMS: NavItem[] = [
   { href: "/settings/users", label: "Users", icon: Users },
   { href: "/settings/currency", label: "Currency", icon: Coins },
   { href: "/settings/roles", label: "Roles & permissions", icon: Lock },
-  { href: "/settings/workspaces", label: "Workspaces", icon: Layers },
   { href: "/settings/backup", label: "Backup & restore", icon: DatabaseBackup },
 ];
 
