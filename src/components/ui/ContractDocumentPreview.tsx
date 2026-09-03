@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, ExternalLink, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { FileText, ExternalLink, X, Loader2 } from "lucide-react";
 
 export type ContractDocumentItem = {
   id: string;
@@ -16,7 +17,18 @@ export function ContractDocumentGrid({
   documents: ContractDocumentItem[];
   onDelete?: (documentId: string) => void;
 }) {
+  const [isPending, startTransition] = useTransition();
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
   if (documents.length === 0) return null;
+
+  function handleRemove(documentId: string) {
+    if (!onDelete || !confirm("Remove this document?")) return;
+    setRemovingId(documentId);
+    startTransition(() => {
+      onDelete(documentId);
+    });
+  }
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -49,12 +61,17 @@ export function ContractDocumentGrid({
             <button
               type="button"
               title="Remove"
-              onClick={() => {
-                if (confirm("Remove this document?")) onDelete(doc.id);
-              }}
-              className="absolute -right-1.5 -top-1.5 rounded-full bg-red-600 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+              disabled={isPending && removingId === doc.id}
+              onClick={() => handleRemove(doc.id)}
+              className={`absolute -right-1.5 -top-1.5 rounded-full bg-red-600 p-0.5 text-white shadow-sm transition-opacity group-hover:opacity-100 ${
+                isPending && removingId === doc.id ? "opacity-100" : "opacity-0"
+              }`}
             >
-              <X className="h-3 w-3" aria-hidden="true" />
+              {isPending && removingId === doc.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+              ) : (
+                <X className="h-3 w-3" aria-hidden="true" />
+              )}
             </button>
           ) : null}
         </div>

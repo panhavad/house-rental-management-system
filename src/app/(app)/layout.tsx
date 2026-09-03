@@ -3,6 +3,7 @@ import { ROLE_LABELS } from "@/lib/rbac";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { MobileIconNav } from "@/components/ui/MobileIconNav";
 import { WorkspaceSwitcher } from "@/components/ui/WorkspaceSwitcher";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { logoutAction } from "@/lib/actions/logout";
 import { exitImpersonationAction } from "@/lib/actions/impersonation";
 import { LogOut, Bell, ShieldAlert, DoorOpen } from "lucide-react";
@@ -23,13 +24,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             Super Admin viewing &amp; managing <strong>{user.workspaceName}</strong> as its administrator
           </span>
           <form action={exitImpersonationAction}>
-            <button
+            <SubmitStatusButton
               type="submit"
+              icon={<DoorOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
               className="inline-flex items-center gap-1 rounded-md bg-amber-950/10 px-2.5 py-1 text-xs font-semibold hover:bg-amber-950/20"
             >
-              <DoorOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               Exit to Super Admin
-            </button>
+            </SubmitStatusButton>
           </form>
         </div>
       ) : null}
@@ -64,13 +65,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="ml-2 text-slate-400">{ROLE_LABELS[user.role]}</span>
           </div>
           <form action={logoutAction}>
-            <button
+            <SubmitStatusButton
               type="submit"
+              icon={<LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />}
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
             >
-              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
-            </button>
+            </SubmitStatusButton>
           </form>
         </div>
       </header>

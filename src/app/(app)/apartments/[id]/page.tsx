@@ -6,6 +6,7 @@ import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac"
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { RoomStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { deleteApartment } from "@/app/(app)/apartments/actions";
@@ -107,13 +108,13 @@ export default async function ApartmentDetailPage({ params }: { params: Promise<
                 </Link>
                 {canWriteRooms ? (
                   <form action={duplicateRoom.bind(null, room.id)} className="mt-3">
-                    <button
+                    <SubmitStatusButton
                       type="submit"
+                      icon={<Copy className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
                     >
-                      <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       Duplicate
-                    </button>
+                    </SubmitStatusButton>
                   </form>
                 ) : null}
               </CardBody>

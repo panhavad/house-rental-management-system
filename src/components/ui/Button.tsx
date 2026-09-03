@@ -3,6 +3,7 @@ import { ButtonHTMLAttributes, ReactNode } from "react";
 import { LucideIcon, Filter } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
+import { LinkStatusContent } from "@/components/ui/LinkStatusContent";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -56,8 +57,9 @@ export function LinkButton({
 }) {
   return (
     <Link href={href} className={twMerge(BASE_CLASSES, VARIANT_CLASSES[variant], className)}>
-      {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
-      {children}
+      <LinkStatusContent icon={Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}>
+        {children}
+      </LinkStatusContent>
     </Link>
   );
 }

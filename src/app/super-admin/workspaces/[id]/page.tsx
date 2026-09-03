@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { RestoreButton } from "@/components/ui/RestoreButton";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { setWorkspaceActive, enterWorkspace, unloadDemoDataAction } from "@/app/super-admin/actions";
@@ -53,19 +54,21 @@ export default async function SuperAdminWorkspaceDetailPage({ params }: { params
               </form>
             ) : (
               <form action={setWorkspaceActive.bind(null, workspace.id, !workspace.isActive)}>
-                <button
+                <SubmitStatusButton
                   type="submit"
+                  icon={
+                    workspace.isActive ? (
+                      <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    )
+                  }
                   className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium text-white ${
                     workspace.isActive ? "bg-red-600 hover:bg-red-500" : "bg-green-600 hover:bg-green-500"
                   }`}
                 >
-                  {workspace.isActive ? (
-                    <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  )}
                   {workspace.isActive ? "Disable workspace" : "Enable workspace"}
-                </button>
+                </SubmitStatusButton>
               </form>
             )}
           </>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Building2, Users, CheckSquare, Square, X, Download, Copy, Trash2 } from "lucide-react";
+import { Building2, Users, CheckSquare, Square, X, Download, Copy, Trash2, Loader2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { deleteWorkspacesAction, duplicateWorkspacesAction } from "@/app/super-admin/backup-actions";
@@ -28,6 +28,7 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [activeAction, setActiveAction] = useState<"duplicate" | "delete" | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
   function toggleSelectMode() {
@@ -53,10 +54,12 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
   function handleDuplicateSelected() {
     if (selected.size === 0 || pending) return;
     const ids = [...selected];
+    setActiveAction("duplicate");
     startTransition(async () => {
       const result = await duplicateWorkspacesAction(ids);
       setMessage({ text: result.message, error: result.error });
       setSelected(new Set());
+      setActiveAction(null);
       router.refresh();
     });
   }
@@ -69,10 +72,12 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
       `Permanently delete ${ids.length} workspace(s) and everything in them (${names.join(", ")})? This cannot be undone.`
     );
     if (!confirmed) return;
+    setActiveAction("delete");
     startTransition(async () => {
       const result = await deleteWorkspacesAction(ids);
       setMessage({ text: result.message, error: result.error });
       setSelected(new Set());
+      setActiveAction(null);
       router.refresh();
     });
   }
@@ -115,7 +120,11 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
               disabled={selected.size === 0 || pending}
               className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Copy className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {activeAction === "duplicate" ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+              ) : (
+                <Copy className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
               Duplicate
             </button>
             <button
@@ -124,7 +133,11 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
               disabled={selected.size === 0 || pending}
               className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {activeAction === "delete" ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
               Remove
             </button>
           </div>

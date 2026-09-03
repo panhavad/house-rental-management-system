@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { createUser, updateUserRole, toggleUserActive } from "@/app/(app)/settings/users/actions";
@@ -98,13 +99,13 @@ export default async function UsersPage({
                       <option value="STAFF">{ROLE_LABELS.STAFF}</option>
                       <option value="VIEWER">{ROLE_LABELS.VIEWER}</option>
                     </Select>
-                    <button
+                    <SubmitStatusButton
                       type="submit"
+                      icon={<Save className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                       className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                     >
-                      <Save className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       Save
-                    </button>
+                    </SubmitStatusButton>
                   </form>
                 </td>
                 <td className="px-5 py-3">
@@ -115,19 +116,21 @@ export default async function UsersPage({
                     <span className="text-xs text-slate-400">You</span>
                   ) : (
                     <form action={toggleUserActive.bind(null, u.id)}>
-                      <button
+                      <SubmitStatusButton
                         type="submit"
+                        icon={
+                          u.isActive ? (
+                            <UserX className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          ) : (
+                            <UserCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          )
+                        }
                         className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white ${
                           u.isActive ? "bg-red-600 hover:bg-red-500" : "bg-green-600 hover:bg-green-500"
                         }`}
                       >
-                        {u.isActive ? (
-                          <UserX className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        ) : (
-                          <UserCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        )}
                         {u.isActive ? "Deactivate" : "Activate"}
-                      </button>
+                      </SubmitStatusButton>
                     </form>
                   )}
                 </td>

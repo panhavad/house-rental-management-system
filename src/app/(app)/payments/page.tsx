@@ -6,6 +6,7 @@ import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac"
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button, FilterButton } from "@/components/ui/Button";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { Select, Input } from "@/components/ui/Field";
 import { PaymentStatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
@@ -133,13 +134,13 @@ export default async function PaymentsPage({
                           <MarkPaidForm action={markPaid.bind(null, p.id)} defaultAmount={p.totalAmount} />
                           {p.status !== "OVERDUE" ? (
                             <form action={markOverdue.bind(null, p.id)}>
-                              <button
+                              <SubmitStatusButton
                                 type="submit"
+                                icon={<AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                                 className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-400"
                               >
-                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                 Mark overdue
-                              </button>
+                              </SubmitStatusButton>
                             </form>
                           ) : null}
                         </div>
@@ -209,13 +210,13 @@ export default async function PaymentsPage({
                               <MarkPaidForm action={markPaid.bind(null, p.id)} defaultAmount={p.totalAmount} />
                               {p.status !== "OVERDUE" ? (
                                 <form action={markOverdue.bind(null, p.id)}>
-                                  <button
+                                  <SubmitStatusButton
                                     type="submit"
+                                    icon={<AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                                     className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-400"
                                   >
-                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                     Mark overdue
-                                  </button>
+                                  </SubmitStatusButton>
                                 </form>
                               ) : null}
                             </div>

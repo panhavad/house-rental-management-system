@@ -1,5 +1,6 @@
 import { requireSuperAdmin } from "@/lib/auth-guard";
 import { logoutAction } from "@/lib/actions/logout";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { LogOut, ShieldAlert } from "lucide-react";
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
@@ -15,13 +16,13 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         <div className="flex items-center gap-3">
           <span className="hidden text-sm text-slate-300 md:block">{user.name}</span>
           <form action={logoutAction}>
-            <button
+            <SubmitStatusButton
               type="submit"
+              icon={<LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />}
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-white/10"
             >
-              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
-            </button>
+            </SubmitStatusButton>
           </form>
         </div>
       </header>
