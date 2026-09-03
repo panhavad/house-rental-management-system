@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import NextTopLoader from "nextjs-toploader";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
@@ -32,6 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-50 text-slate-900 antialiased">
+        {/* Subtle top-of-page progress bar for page navigations — gives feedback without a
+            blocking spinner or layout shift, matching the site's slate color scheme. */}
+        <NextTopLoader color="#0f172a" height={2.5} showSpinner={false} shadow={false} />
         {children}
         <ServiceWorkerRegister />
       </body>

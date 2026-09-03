@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 import { LucideIcon, Filter } from "lucide-react";
 import { twMerge } from "tailwind-merge";
+import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -15,6 +16,13 @@ const VARIANT_CLASSES: Record<Variant, string> = {
 const BASE_CLASSES =
   "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
+/**
+ * Renders its icon here (while still a Server Component), then hands the
+ * already-rendered icon element off to `SubmitStatusButton` — a small Client
+ * Component that additionally swaps it for a spinner while the enclosing
+ * form is submitting. This keeps `Button` itself usable directly from Server
+ * Components (as it always has been) with no change to its public API.
+ */
 export function Button({
   variant = "primary",
   className,
@@ -23,10 +31,13 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; icon?: LucideIcon; children: ReactNode }) {
   return (
-    <button className={twMerge(BASE_CLASSES, VARIANT_CLASSES[variant], className)} {...props}>
-      {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+    <SubmitStatusButton
+      className={twMerge(BASE_CLASSES, VARIANT_CLASSES[variant], className)}
+      icon={Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+      {...props}
+    >
       {children}
-    </button>
+    </SubmitStatusButton>
   );
 }
 
