@@ -6,6 +6,9 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { getAppSettings } from "@/lib/currency";
 import { generateContractAgreementPdf, type ContractPdfData } from "@/lib/contract-pdf";
 import { saveWorkspaceContractTemplate, resetWorkspaceContractTemplate } from "@/lib/contract-template";
+import { getActiveLanguage } from "@/lib/language";
+import type { Locale } from "@/lib/language-catalog";
+import type { Translations } from "@/lib/language-shared";
 
 export async function updateContractTemplate(formData: FormData) {
   const user = await requirePermission(PERMISSIONS.CONTRACTS_WRITE);
@@ -28,7 +31,13 @@ export async function resetContractTemplate() {
 }
 
 /** Sample data used so the template can be previewed without a real room/contract to point it at. */
-function buildSampleContractData(workspaceName: string, preparedByName: string, settings: ContractPdfData["settings"]): ContractPdfData {
+function buildSampleContractData(
+  workspaceName: string,
+  preparedByName: string,
+  settings: ContractPdfData["settings"],
+  locale: Locale,
+  translations: Translations
+): ContractPdfData {
   const startDate = new Date();
   const endDate = new Date(startDate);
   endDate.setFullYear(endDate.getFullYear() + 1);
@@ -45,6 +54,9 @@ function buildSampleContractData(workspaceName: string, preparedByName: string, 
       deposit: 500,
       waterMeterStart: 120,
       electricityMeterStart: 845,
+      fixedUtilityEnabled: true,
+      fixedWaterFee: 5,
+      fixedElectricityFee: null,
       startDate,
       endDate,
       notes: "Sample note: tenant keeps one small pet cat, agreed verbally with the landlord.",
@@ -57,6 +69,8 @@ function buildSampleContractData(workspaceName: string, preparedByName: string, 
     preparedByName,
     generatedAt: new Date(),
     isPreview: true,
+    locale,
+    translations,
   };
 }
 
@@ -66,8 +80,14 @@ export async function previewContractTemplate(formData: FormData): Promise<{ pdf
   const content = String(formData.get("content") ?? "");
 
   try {
-    const settings = await getAppSettings(user.workspaceId);
-    const data = buildSampleContractData(user.workspaceName ?? "RentalHRM", user.name ?? "Property Manager", settings);
+    const [settings, language] = await Promise.all([getAppSettings(user.workspaceId), getActiveLanguage()]);
+    const data = buildSampleContractData(
+      user.workspaceName ?? "RentalHRM",
+      user.name ?? "Property Manager",
+      settings,
+      language.locale,
+      language.translations
+    );
     const pdfBytes = await generateContractAgreementPdf(data, content);
     return { pdfBase64: Buffer.from(pdfBytes).toString("base64") };
   } catch (error) {

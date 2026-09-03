@@ -4,10 +4,12 @@ import { useState } from "react";
 import { FileText, Share2, AlertTriangle, Loader2 } from "lucide-react";
 import { prepareInvoice, type InvoiceViewData } from "@/app/(app)/payments/invoice-actions";
 import { formatMoney, type AppSettings } from "@/lib/currency-format";
+import { createTranslator } from "@/lib/language-shared";
 
 /** Builds the printable invoice as a plain, inline-styled DOM tree (not Tailwind classes) so html2canvas renders it reliably regardless of the app's own stylesheet. */
 function buildInvoiceElement(data: InvoiceViewData): HTMLDivElement {
   const settings: AppSettings = { currency: data.currency as AppSettings["currency"], exchangeRate: data.exchangeRate };
+  const t = createTranslator(data.locale, data.translations);
   const statusColors: Record<InvoiceViewData["status"], string> = {
     PAID: "#0f7a45",
     PENDING: "#b3810d",
@@ -54,45 +56,45 @@ function buildInvoiceElement(data: InvoiceViewData): HTMLDivElement {
   const header = document.createElement("div");
   Object.assign(header.style, { textAlign: "center", marginBottom: "16px" });
   const title = document.createElement("div");
-  title.textContent = data.status === "PAID" ? "PAYMENT RECEIPT" : "PAYMENT INVOICE";
+  title.textContent = t(data.status === "PAID" ? "PAYMENT RECEIPT" : "PAYMENT INVOICE");
   Object.assign(title.style, { fontSize: "18px", fontWeight: "700" });
   const workspace = document.createElement("div");
   workspace.textContent = data.workspaceName;
   Object.assign(workspace.style, { fontSize: "12px", color: "#6b7280", marginTop: "2px" });
   const status = document.createElement("div");
-  status.textContent = data.status;
+  status.textContent = t(data.status);
   Object.assign(status.style, { fontSize: "13px", fontWeight: "700", color: statusColors[data.status], marginTop: "8px" });
   header.append(title, workspace, status);
   root.appendChild(header);
 
-  root.appendChild(row("Billed to", data.tenantName ?? "—"));
-  root.appendChild(row("Room", `${data.roomName} (${data.roomType})`));
-  root.appendChild(row("Apartment", data.apartmentAddress ? `${data.apartmentName}, ${data.apartmentAddress}` : data.apartmentName));
-  root.appendChild(row("Invoice #", data.paymentId));
-  root.appendChild(row("Billing period", data.month));
-  root.appendChild(row("Due date", data.dueDate ? new Date(data.dueDate).toLocaleDateString() : "—"));
+  root.appendChild(row(t("Billed to"), data.tenantName ?? "—"));
+  root.appendChild(row(t("Room"), `${data.roomName} (${data.roomType})`));
+  root.appendChild(row(t("Apartment"), data.apartmentAddress ? `${data.apartmentName}, ${data.apartmentAddress}` : data.apartmentName));
+  root.appendChild(row(t("Invoice #"), data.paymentId));
+  root.appendChild(row(t("Billing period"), data.month));
+  root.appendChild(row(t("Due date"), data.dueDate ? new Date(data.dueDate).toLocaleDateString(data.locale === "km" ? "km-KH" : "en-US") : "—"));
 
-  root.appendChild(heading("Charges"));
-  root.appendChild(row("Rent", formatMoney(data.rentalFee, settings)));
-  root.appendChild(row("Utilities (water & electricity)", formatMoney(data.utilityAmount, settings)));
+  root.appendChild(heading(t("Charges")));
+  root.appendChild(row(t("Rent"), formatMoney(data.rentalFee, settings)));
+  root.appendChild(row(t("Utilities (water & electricity)"), formatMoney(data.utilityAmount, settings)));
   const total = document.createElement("div");
   Object.assign(total.style, { display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "15px", fontWeight: "700" });
   const totalLabel = document.createElement("span");
-  totalLabel.textContent = "Total due";
+  totalLabel.textContent = t("Total due: {amount}", { amount: "" }).replace(/[:៖]\s*$/, "");
   const totalValue = document.createElement("span");
   totalValue.textContent = formatMoney(data.totalAmount, settings);
   total.append(totalLabel, totalValue);
   root.appendChild(total);
 
   if (data.status === "PAID") {
-    root.appendChild(row("Paid on", data.paidAt ? new Date(data.paidAt).toLocaleDateString() : "—"));
-    if (data.paidAmount != null) root.appendChild(row("Amount paid", formatMoney(data.paidAmount, settings)));
-    if (data.method) root.appendChild(row("Paid via", data.method));
+    root.appendChild(row(t("Paid on"), data.paidAt ? new Date(data.paidAt).toLocaleDateString(data.locale === "km" ? "km-KH" : "en-US") : "—"));
+    if (data.paidAmount != null) root.appendChild(row(t("Amount paid"), formatMoney(data.paidAmount, settings)));
+    if (data.method) root.appendChild(row(t("Paid via"), data.method));
   }
-  if (data.notes) root.appendChild(row("Notes", data.notes));
+  if (data.notes) root.appendChild(row(t("Notes"), data.notes));
 
   if (data.paymentMethods.length > 0) {
-    root.appendChild(heading("Ways to Pay"));
+    root.appendChild(heading(t("Ways to Pay")));
     for (const method of data.paymentMethods) {
       const block = document.createElement("div");
       Object.assign(block.style, { display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "10px" });
@@ -103,10 +105,10 @@ function buildInvoiceElement(data: InvoiceViewData): HTMLDivElement {
       label.textContent = method.label;
       Object.assign(label.style, { fontSize: "13px", fontWeight: "700", marginBottom: "2px" });
       details.appendChild(label);
-      if (method.bankName) details.appendChild(row("Bank / provider", method.bankName));
-      if (method.accountName) details.appendChild(row("Account holder", method.accountName));
-      if (method.accountNumber) details.appendChild(row("Account / phone", method.accountNumber));
-      if (method.notes) details.appendChild(row("Notes", method.notes));
+      if (method.bankName) details.appendChild(row(t("Bank / provider"), method.bankName));
+      if (method.accountName) details.appendChild(row(t("Account holder"), method.accountName));
+      if (method.accountNumber) details.appendChild(row(t("Account / phone number"), method.accountNumber));
+      if (method.notes) details.appendChild(row(t("Notes"), method.notes));
 
       block.appendChild(details);
       if (method.qrImageUrl) {

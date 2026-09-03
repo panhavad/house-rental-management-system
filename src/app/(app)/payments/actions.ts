@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/auth-guard";
 import { PERMISSIONS } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { currentMonth, lastDayOfMonth } from "@/lib/dates";
+import { contractFixedUtilityFees, fixedUtilityTotal } from "@/lib/utility-billing";
 
 export async function generateMissingInvoices(formData: FormData) {
   const user = await requirePermission(PERMISSIONS.PAYMENTS_WRITE);
@@ -14,19 +15,26 @@ export async function generateMissingInvoices(formData: FormData) {
 
   const occupiedRooms = await prisma.room.findMany({
     where: { status: "OCCUPIED", apartment: { workspaceId: user.workspaceId } },
-    include: { payments: { where: { month } } },
+    include: {
+      payments: { where: { month } },
+      contracts: { where: { status: "ACTIVE" }, orderBy: { startDate: "desc" }, take: 1 },
+    },
   });
 
   const roomsNeedingInvoice = occupiedRooms.filter((room) => room.payments.length === 0);
 
   for (const room of roomsNeedingInvoice) {
+    // Fixed/pre-paid utilities are known up front, so they can be billed
+    // without a meter reading; metered utilities are added later, when the
+    // reading for the month is recorded.
+    const utilityAmount = fixedUtilityTotal(contractFixedUtilityFees(room.contracts[0]));
     const payment = await prisma.payment.create({
       data: {
         roomId: room.id,
         month,
         rentalFee: room.rentalFee,
-        utilityAmount: 0,
-        totalAmount: room.rentalFee,
+        utilityAmount,
+        totalAmount: room.rentalFee + utilityAmount,
         dueDate: lastDayOfMonth(month),
       },
     });

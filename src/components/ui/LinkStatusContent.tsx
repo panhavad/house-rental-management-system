@@ -4,6 +4,7 @@ import { useLinkStatus } from "next/link";
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
+import { useTranslatedChildren } from "@/components/LanguageProvider";
 
 /**
  * Renders inside a `<Link>` (per Next.js's `useLinkStatus` contract) and
@@ -23,6 +24,7 @@ export function LinkStatusContent({
   spinnerClassName?: string;
 }) {
   const { pending } = useLinkStatus();
+  const label = useTranslatedChildren(children);
   return (
     <>
       {pending ? (
@@ -30,7 +32,7 @@ export function LinkStatusContent({
       ) : (
         icon
       )}
-      {children}
+      {label}
     </>
   );
 }

@@ -251,6 +251,81 @@ function FormSectionHeading({ icon: Icon, label }: { icon: typeof User; label: s
   );
 }
 
+/**
+ * Opt-in flat monthly pricing for utilities. Ticking the box reveals a price
+ * per utility; whichever price is left blank keeps that utility on the normal
+ * dynamic (post-paid, metered) billing.
+ */
+function FixedUtilityFields({
+  defaultEnabled = false,
+  defaultWaterFee,
+  defaultElectricityFee,
+}: {
+  defaultEnabled?: boolean;
+  defaultWaterFee?: number | null;
+  defaultElectricityFee?: number | null;
+}) {
+  const [enabled, setEnabled] = useState(defaultEnabled);
+
+  return (
+    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+      <label className="flex items-start gap-2 text-sm font-medium text-slate-700">
+        <input
+          type="checkbox"
+          name="fixedUtilityEnabled"
+          value="on"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-slate-900"
+        />
+        <span>
+          Fixed / pre-paid utilities
+          <span className="mt-0.5 block text-xs font-normal text-slate-500">
+            Charge a flat monthly price instead of billing by meter usage.
+          </span>
+        </span>
+      </label>
+
+      {enabled ? (
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field
+            label="Fixed water price (per month)"
+            htmlFor="fixedWaterFee"
+            icon={Droplets}
+            hint="Leave blank to bill water by meter reading."
+          >
+            <Input
+              id="fixedWaterFee"
+              name="fixedWaterFee"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Metered (post-paid)"
+              defaultValue={defaultWaterFee ?? ""}
+            />
+          </Field>
+          <Field
+            label="Fixed electricity price (per month)"
+            htmlFor="fixedElectricityFee"
+            icon={Zap}
+            hint="Leave blank to bill electricity by meter reading."
+          >
+            <Input
+              id="fixedElectricityFee"
+              name="fixedElectricityFee"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Metered (post-paid)"
+              defaultValue={defaultElectricityFee ?? ""}
+            />
+          </Field>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function StartContractForm({
   action,
   previewAction,
@@ -347,6 +422,9 @@ export function StartContractForm({
               required
             />
           </Field>
+          <div className="sm:col-span-2">
+            <FixedUtilityFields />
+          </div>
           <div className="sm:col-span-2">
             <Field label="Contract documents (PDF, JPG, PNG or WEBP — optional, multiple allowed)" htmlFor="documents" icon={Paperclip}>
               <input

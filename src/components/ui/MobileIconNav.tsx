@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
 import { StatusLink } from "@/components/ui/StatusLink";
 import { NAV_ITEMS, ADMIN_ONLY_NAV_ITEMS, MY_ACCESS_NAV_ITEM, isNavItemActive } from "@/lib/nav-items";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * Always-visible, icon-based navigation strip for small screens. Replaces the
@@ -12,6 +13,7 @@ import { NAV_ITEMS, ADMIN_ONLY_NAV_ITEMS, MY_ACCESS_NAV_ITEM, isNavItemActive } 
  */
 export function MobileIconNav({ role }: { role: Role }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const items =
     role === "ADMIN"
       ? [...NAV_ITEMS, ...ADMIN_ONLY_NAV_ITEMS, MY_ACCESS_NAV_ITEM]
@@ -36,7 +38,7 @@ export function MobileIconNav({ role }: { role: Role }) {
             icon={<Icon className="h-5 w-5 shrink-0" aria-hidden="true" />}
             spinnerClassName="h-5 w-5"
           >
-            <span className="max-w-14 truncate text-[10px] font-medium leading-none">{item.label}</span>
+            <span className="max-w-14 truncate text-[10px] font-medium leading-none">{t(item.label)}</span>
           </StatusLink>
         );
       })}

@@ -12,6 +12,7 @@ import { Droplets, Zap } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 import { resolvePage, resolvePageSize, paginationSkipTake, PAGE_SIZE_COOKIE } from "@/lib/pagination";
 import { QrScanButton } from "@/components/ui/QrScanButton";
+import { RoomQrExportButton } from "@/app/(app)/utilities/RoomQrExportButton";
 
 export default async function UtilitiesPage({
   searchParams,
@@ -59,6 +60,7 @@ export default async function UtilitiesPage({
         actions={
           hasPermission(matrix, user.role, PERMISSIONS.UTILITIES_WRITE) ? (
             <>
+              <RoomQrExportButton apartmentId={apartmentId} roomId={roomId} />
               <QrScanButton />
               <LinkButton href="/utilities/new" icon={Droplets}>
                 Record reading

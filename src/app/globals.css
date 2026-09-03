@@ -1,9 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Noto Sans Khmer";
+  src: url("/fonts/NotoSansKhmer.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
 }
 
 body {
   min-height: 100vh;
+}
+
+html[lang="km"] body {
+  font-family: "Noto Sans Khmer", sans-serif;
 }

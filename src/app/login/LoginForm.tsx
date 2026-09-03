@@ -9,6 +9,7 @@ import { LoginState, SUPER_ADMIN_SELECTION } from "@/app/login/login-types";
 import { Field, Input } from "@/components/ui/Field";
 import { StatusLink } from "@/components/ui/StatusLink";
 import { ROLE_LABELS } from "@/lib/rbac";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: LoginState = {};
 
@@ -33,6 +34,7 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction] = useActionState(loginAction, initialState);
   const [selection, setSelection] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   if (state.candidates && state.candidates.length > 0) {
     const selectedWorkspace =
@@ -49,7 +51,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           <input type="hidden" name="selectionWorkspaceId" value={selectedWorkspace.workspaceId} />
         ) : null}
 
-        <p className="text-sm text-slate-600">This email is used in more than one place. Continue as:</p>
+        <p className="text-sm text-slate-600">{t("This email is used in more than one place. Continue as:")}</p>
 
         <div className="flex flex-col gap-2">
           {state.candidates.map((candidate) => {
@@ -78,7 +80,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
                 )}
                 <span className="flex-1">
                   <span className="block font-medium text-slate-900">
-                    {candidate.kind === "super-admin" ? "Platform Super Admin" : candidate.label}
+                    {candidate.kind === "super-admin" ? t("Platform Super Admin") : candidate.label}
                   </span>
                   {candidate.kind === "workspace" ? (
                     <span className="block text-xs text-slate-400">{ROLE_LABELS[candidate.role as Role]}</span>
@@ -92,7 +94,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
         {selectedWorkspace ? (
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input type="checkbox" name="setDefault" className="rounded border-slate-300" />
-            Remember this as my default workspace
+            {t("Remember this as my default workspace")}
           </label>
         ) : null}
 
@@ -102,7 +104,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           </p>
         ) : null}
 
-        <SubmitButton label="Continue" pendingLabel="Signing in…" />
+        <SubmitButton label={t("Continue")} pendingLabel={t("Signing in…")} />
 
         <StatusLink
           href="/login"
@@ -130,7 +132,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           {state.error}
         </p>
       ) : null}
-      <SubmitButton label="Sign in" pendingLabel="Signing in…" />
+      <SubmitButton label={t("Sign in")} pendingLabel={t("Signing in…")} />
     </form>
   );
 }

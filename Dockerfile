@@ -60,10 +60,13 @@ COPY --from=builder /app/next.config.js ./next.config.js
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Normalize line endings in case the script was ever edited on Windows, then make it
-# executable; create the volume mount points with correct ownership up front.
+# executable; create the volume mount points with correct ownership up front. Docker
+# seeds a fresh named volume from the image's directory — including its ownership —
+# so these must exist and belong to `nextjs` before the volumes are created, or the
+# app couldn't write uploads / the maintenance flag into them.
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh \
     && chmod +x ./docker-entrypoint.sh \
-    && mkdir -p /app/data/uploads \
+    && mkdir -p /app/data/uploads /app/data/maintenance \
     && chown -R nextjs:nodejs /app
 
 USER nextjs

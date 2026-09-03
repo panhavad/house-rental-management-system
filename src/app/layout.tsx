@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import NextTopLoader from "nextjs-toploader";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { getActiveLanguage } from "@/lib/language";
 
 export const metadata: Metadata = {
   title: "RentalHRM",
@@ -25,18 +27,22 @@ export const viewport: Viewport = {
   themeColor: "#0f172a",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, translations } = await getActiveLanguage();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="bg-slate-50 text-slate-900 antialiased">
         {/* Subtle top-of-page progress bar for page navigations — gives feedback without a
             blocking spinner or layout shift, matching the site's slate color scheme. */}
         <NextTopLoader color="#0f172a" height={2.5} showSpinner={false} shadow={false} />
-        {children}
+        <LanguageProvider locale={locale} translations={translations}>
+          {children}
+        </LanguageProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

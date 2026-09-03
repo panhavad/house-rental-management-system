@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { LinkStatusContent } from "@/components/ui/LinkStatusContent";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * A `<Link>` that gives the same click feedback as the `Enter workspace`
@@ -36,8 +37,11 @@ export function StatusLink({
   onClick?: () => void;
   children: ReactNode;
 }) {
+  const { t } = useLanguage();
+  const tooltip = title ? t(title) : undefined;
+
   return (
-    <Link href={href} className={className} title={title} prefetch={prefetch} onClick={onClick}>
+    <Link href={href} className={className} title={title ? tooltip : undefined} prefetch={prefetch} onClick={onClick}>
       <LinkStatusContent icon={icon} spinnerClassName={spinnerClassName}>
         {children}
       </LinkStatusContent>

@@ -7,7 +7,9 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { recordUtilityReading } from "@/app/(app)/utilities/actions";
 import { currentMonth } from "@/lib/dates";
 import { getPreviousReadingDefaults } from "@/lib/meter-readings";
-import { Save, X, DoorOpen, CalendarDays, Droplets, Zap } from "lucide-react";
+import { contractFixedUtilityFees, hasFixedUtilityFee, FIXED_UTILITY_SELECT } from "@/lib/utility-billing";
+import { getAppSettings, formatMoney } from "@/lib/currency";
+import { Save, X, DoorOpen, CalendarDays, Droplets, Zap, Info } from "lucide-react";
 
 export default async function NewUtilityReadingPage({
   searchParams,
@@ -28,6 +30,20 @@ export default async function NewUtilityReadingPage({
   const previousDefaults = preselectedRoomId
     ? await getPreviousReadingDefaults(preselectedRoomId)
     : { water: 0, electricity: 0 };
+  // Same caveat: only resolved for a preselected room, purely as a heads-up
+  // that the recorded usage won't drive the price for a fixed utility.
+  const [fixedFees, settings] = await Promise.all([
+    preselectedRoomId
+      ? prisma.contract
+          .findFirst({
+            where: { roomId: preselectedRoomId, status: "ACTIVE" },
+            orderBy: { startDate: "desc" },
+            select: FIXED_UTILITY_SELECT,
+          })
+          .then(contractFixedUtilityFees)
+      : contractFixedUtilityFees(null),
+    getAppSettings(user.workspaceId),
+  ]);
 
   return (
     <div>
@@ -55,6 +71,21 @@ export default async function NewUtilityReadingPage({
             <Input id="month" name="month" type="month" defaultValue={currentMonth()} required />
           </Field>
         </div>
+
+        {hasFixedUtilityFee(fixedFees) ? (
+          <div className="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 sm:col-span-2">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p>
+              This room&apos;s contract uses fixed utility pricing — water{" "}
+              {fixedFees.water !== null ? `${formatMoney(fixedFees.water, settings)}/month` : "billed by meter"},
+              electricity{" "}
+              {fixedFees.electricity !== null
+                ? `${formatMoney(fixedFees.electricity, settings)}/month`
+                : "billed by meter"}
+              . Readings are still recorded, but a fixed utility is charged at its flat price.
+            </p>
+          </div>
+        ) : null}
 
         <Field label="Water — previous reading" htmlFor="waterPrevious" icon={Droplets} required>
           <Input id="waterPrevious" name="waterPrevious" type="number" step="0.01" defaultValue={previousDefaults.water} required />

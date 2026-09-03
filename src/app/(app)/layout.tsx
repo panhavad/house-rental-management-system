@@ -10,10 +10,13 @@ import { exitImpersonationAction } from "@/lib/actions/impersonation";
 import { LogOut, ShieldAlert, DoorOpen } from "lucide-react";
 import { APP_VERSION, APP_RELEASE_DATE } from "@/lib/app-info";
 import { getAttentionSummary } from "@/lib/attention";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { getTranslator } from "@/lib/language";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireWorkspaceUser();
   const attention = await getAttentionSummary(user.workspaceId);
+  const t = await getTranslator();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -39,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           RentalHRM{user.workspaceName ? <span className="ml-2 font-normal text-slate-400">· {user.workspaceName}</span> : null}
         </span>
         <div className="flex items-center gap-3">
+          <LanguageSelector />
           {!user.impersonating ? (
             <WorkspaceSwitcher
               currentWorkspaceId={user.workspaceId}
@@ -59,7 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               icon={<LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />}
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
             >
-              <span className="hidden sm:inline">Sign out</span>
+              <span className="hidden sm:inline">{t("Sign out")}</span>
             </SubmitStatusButton>
           </form>
         </div>

@@ -10,6 +10,7 @@ import { saveContractDocuments, saveGeneratedContractPdf, deleteContractDocument
 import { generateContractAgreementPdf, type ContractPdfData } from "@/lib/contract-pdf";
 import { getWorkspaceContractTemplate } from "@/lib/contract-template";
 import { getAppSettings } from "@/lib/currency";
+import { getActiveLanguage } from "@/lib/language";
 
 function parseFacilityIds(formData: FormData): string[] {
   return formData.getAll("facilityIds").map(String);
@@ -187,6 +188,10 @@ type ContractFormFields = {
   deposit: number;
   waterMeterStart: number;
   electricityMeterStart: number;
+  /** Opt-in flat monthly utility pricing; each fee is null when that utility stays on metered (post-paid) billing. */
+  fixedUtilityEnabled: boolean;
+  fixedWaterFee: number | null;
+  fixedElectricityFee: number | null;
   startDate: Date;
   endDate: Date;
   notes: string | null;
@@ -203,6 +208,12 @@ function parseContractFormFields(formData: FormData): ContractFormFields {
   const deposit = Number(formData.get("deposit") ?? 0);
   const waterMeterStart = Number(formData.get("waterMeterStart") ?? 0);
   const electricityMeterStart = Number(formData.get("electricityMeterStart") ?? 0);
+  const fixedUtilityEnabled = Boolean(formData.get("fixedUtilityEnabled"));
+  // A blank price means that utility keeps the dynamic/post-paid metered billing.
+  const fixedWaterFee = fixedUtilityEnabled ? parseOptionalFee(formData.get("fixedWaterFee"), "water") : null;
+  const fixedElectricityFee = fixedUtilityEnabled
+    ? parseOptionalFee(formData.get("fixedElectricityFee"), "electricity")
+    : null;
   const startDate = new Date(String(formData.get("startDate")));
   const endDate = new Date(String(formData.get("endDate")));
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -224,10 +235,24 @@ function parseContractFormFields(formData: FormData): ContractFormFields {
     deposit,
     waterMeterStart,
     electricityMeterStart,
+    fixedUtilityEnabled,
+    fixedWaterFee,
+    fixedElectricityFee,
     startDate,
     endDate,
     notes,
   };
+}
+
+/** A fixed utility price: left blank (or absent) means "bill this utility by meter usage instead". */
+function parseOptionalFee(value: FormDataEntryValue | null, label: string): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const fee = Number(raw);
+  if (Number.isNaN(fee) || fee < 0) {
+    throw new Error(`The fixed ${label} price must be a number of 0 or more, or left blank.`);
+  }
+  return fee;
 }
 
 async function findContractRoom(roomId: string, workspaceId: string) {
@@ -250,7 +275,7 @@ async function buildContractPdfData(opts: {
   /** Defaults to now; pass the contract's creation date when re-rendering an already-started contract. */
   generatedAt?: Date;
 }): Promise<ContractPdfData> {
-  const settings = await getAppSettings(opts.workspaceId);
+  const [settings, language] = await Promise.all([getAppSettings(opts.workspaceId), getActiveLanguage()]);
   return {
     contract: { id: opts.contractId, ...opts.fields },
     room: { name: opts.room.name, type: opts.room.type, size: opts.room.size, floor: opts.room.floor },
@@ -261,6 +286,8 @@ async function buildContractPdfData(opts: {
     preparedByName: opts.preparedByName,
     generatedAt: opts.generatedAt ?? new Date(),
     isPreview: opts.isPreview,
+    locale: language.locale,
+    translations: language.translations,
   };
 }
 

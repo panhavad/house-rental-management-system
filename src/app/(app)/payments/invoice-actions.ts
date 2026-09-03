@@ -7,6 +7,9 @@ import { getWorkspacePaymentMethods } from "@/lib/payment-methods";
 import { generateInvoicePdf, type InvoicePaymentMethod } from "@/lib/invoice-pdf";
 import { firstDayOfMonth, lastDayOfMonth } from "@/lib/dates";
 import { readUploadBytes } from "@/lib/uploads";
+import { getActiveLanguage } from "@/lib/language";
+import type { Locale } from "@/lib/language-catalog";
+import type { Translations } from "@/lib/language-shared";
 
 /** Plain, JSON-serializable view of an invoice — used both to render the on-screen "share as image" preview and as the source for the PDF. */
 export type InvoiceViewData = {
@@ -38,6 +41,8 @@ export type InvoiceViewData = {
     qrImageUrl: string | null;
   }[];
   generatedAt: string;
+  locale: Locale;
+  translations: Translations;
 };
 
 /** Finds the tenant whose lease covers a payment's billing month, if any (a payment isn't reliably linked to a specific contract otherwise). */
@@ -68,10 +73,11 @@ export async function prepareInvoice(paymentId: string): Promise<{ data: Invoice
   if (!payment) return { error: "Payment not found." };
 
   try {
-    const [tenantName, settings, methods] = await Promise.all([
+    const [tenantName, settings, methods, language] = await Promise.all([
       findTenantNameForPayment(payment.roomId, payment.month),
       getAppSettings(user.workspaceId),
       getWorkspacePaymentMethods(user.workspaceId),
+      getActiveLanguage(),
     ]);
 
     const methodsWithQr: (InvoicePaymentMethod & { qrImageUrl: string | null })[] = await Promise.all(
@@ -119,6 +125,8 @@ export async function prepareInvoice(paymentId: string): Promise<{ data: Invoice
       settings,
       paymentMethods: methodsWithQr,
       generatedAt,
+      locale: language.locale,
+      translations: language.translations,
     });
 
     const data: InvoiceViewData = {
@@ -150,6 +158,8 @@ export async function prepareInvoice(paymentId: string): Promise<{ data: Invoice
         qrImageUrl: m.qrImageUrl,
       })),
       generatedAt: generatedAt.toISOString(),
+      locale: language.locale,
+      translations: language.translations,
     };
 
     return { data, pdfBase64: Buffer.from(pdfBytes).toString("base64") };

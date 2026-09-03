@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { FolderOpen, Upload, Loader2, X } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export type RestoreState = { error?: string; success?: string };
 
@@ -28,6 +29,7 @@ export function RestoreButton({
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<RestoreState | null>(null);
+  const { t } = useLanguage();
 
   function handleButtonClick() {
     if (!file) {
@@ -89,13 +91,13 @@ export function RestoreButton({
           ) : (
             <FolderOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
-          {pending ? "Restoring…" : file ? `Restore "${file.name}"` : label}
+          {pending ? t("Restoring…") : file ? `${t("Restore")} "${file.name}"` : t(label)}
         </button>
         {file && !pending ? (
           <button
             type="button"
             onClick={clearFile}
-            aria-label="Cancel file selection"
+            aria-label={t("Cancel file selection")}
             className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
             <X className="h-4 w-4 shrink-0" aria-hidden="true" />

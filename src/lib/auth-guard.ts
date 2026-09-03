@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isMaintenanceModeOn } from "@/lib/maintenance";
 import { Permission, hasPermission, getRolePermissionMatrix } from "@/lib/rbac";
 import type { Session } from "next-auth";
 
@@ -40,9 +41,20 @@ export async function requireUser(): Promise<Session["user"]> {
  *
  * If a super admin hasn't entered a workspace, redirect to their own area instead —
  * this keeps every regular page free of null-workspace edge cases.
+ *
+ * Also the single choke point for maintenance mode: every workspace page and every
+ * workspace server action goes through here, so one check locks the whole app down
+ * for everyone but the Super Admin. The check looks at their *real* role, so a
+ * Super Admin who has entered a workspace still works normally during the window.
  */
 export async function requireWorkspaceUser(): Promise<WorkspaceUser> {
   const user = await requireUser();
+
+  // Checked against the database rather than the proxy's cached flag file, so a
+  // stale mirror can never let a write through during a maintenance window.
+  if (user.role !== "SUPER_ADMIN" && (await isMaintenanceModeOn())) {
+    redirect("/maintenance");
+  }
 
   if (user.role === "SUPER_ADMIN") {
     const cookieStore = await cookies();

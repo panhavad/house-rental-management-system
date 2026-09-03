@@ -13,6 +13,18 @@ if [ ! -w "$UPLOADS_DIR" ]; then
   exit 1
 fi
 
+# Maintenance mode writes its flag file and the pre-rendered maintenance page here.
+# The nginx container mounts the same volume read-only and serves that page while
+# this container is stopped for an update, so users never see a connection error.
+MAINTENANCE_DIR="${MAINTENANCE_DIR:-/app/data/maintenance}"
+echo "==> RentalHRM: preparing maintenance directory at ${MAINTENANCE_DIR}..."
+mkdir -p "$MAINTENANCE_DIR"
+if [ ! -w "$MAINTENANCE_DIR" ]; then
+  echo "ERROR: ${MAINTENANCE_DIR} is not writable by $(id -un) (uid $(id -u))." >&2
+  echo "       Check the volume mount and its ownership in docker-compose.yml." >&2
+  exit 1
+fi
+
 echo "==> RentalHRM: applying database migrations..."
 npx prisma migrate deploy
 

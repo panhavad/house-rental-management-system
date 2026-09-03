@@ -7,6 +7,7 @@ import { requirePermission } from "@/lib/auth-guard";
 import { PERMISSIONS } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { lastDayOfMonth } from "@/lib/dates";
+import { contractFixedUtilityFees, utilityCharge, FIXED_UTILITY_SELECT } from "@/lib/utility-billing";
 
 export async function recordUtilityReading(formData: FormData) {
   const user = await requirePermission(PERMISSIONS.UTILITIES_WRITE);
@@ -27,7 +28,7 @@ export async function recordUtilityReading(formData: FormData) {
     where: { id: roomId, apartment: { workspaceId: user.workspaceId } },
   });
 
-  const [waterRateRow, electricityRateRow] = await Promise.all([
+  const [waterRateRow, electricityRateRow, activeContract] = await Promise.all([
     prisma.utilityRate.findFirst({
       where: { type: "WATER", workspaceId: user.workspaceId },
       orderBy: { effectiveFrom: "desc" },
@@ -36,14 +37,28 @@ export async function recordUtilityReading(formData: FormData) {
       where: { type: "ELECTRICITY", workspaceId: user.workspaceId },
       orderBy: { effectiveFrom: "desc" },
     }),
+    // A fixed/pre-paid utility is charged at its agreed flat price; the meter
+    // reading is still recorded, it just doesn't drive the amount billed.
+    prisma.contract.findFirst({
+      where: { roomId, status: "ACTIVE" },
+      orderBy: { startDate: "desc" },
+      select: FIXED_UTILITY_SELECT,
+    }),
   ]);
-  const waterRate = waterRateRow?.pricePerUnit ?? 0;
-  const electricityRate = electricityRateRow?.pricePerUnit ?? 0;
+  const fixedFees = contractFixedUtilityFees(activeContract);
 
   const waterUsage = waterCurrent - waterPrevious;
   const electricityUsage = electricityCurrent - electricityPrevious;
-  const waterCost = waterUsage * waterRate;
-  const electricityCost = electricityUsage * electricityRate;
+  const { rate: waterRate, cost: waterCost } = utilityCharge(
+    waterUsage,
+    waterRateRow?.pricePerUnit ?? 0,
+    fixedFees.water
+  );
+  const { rate: electricityRate, cost: electricityCost } = utilityCharge(
+    electricityUsage,
+    electricityRateRow?.pricePerUnit ?? 0,
+    fixedFees.electricity
+  );
   const totalCost = waterCost + electricityCost;
 
   const reading = await prisma.utilityReading.upsert({

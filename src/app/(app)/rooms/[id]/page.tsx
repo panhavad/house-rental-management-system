@@ -10,8 +10,9 @@ import { DeleteButton } from "@/components/ui/DeleteButton";
 import { StatusLink } from "@/components/ui/StatusLink";
 import { deleteRoom, duplicateRoom, startContract, previewContract, reviewContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
 import { StartContractForm, TerminateContractForm, ReviewContractButton, UploadDocumentForm } from "@/app/(app)/rooms/[id]/ContractForms";
-import { Pencil, CheckCircle2, Users, QrCode, Copy } from "lucide-react";
+import { Pencil, CheckCircle2, Users, QrCode, Copy, Droplets } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
+import { contractFixedUtilityFees, hasFixedUtilityFee } from "@/lib/utility-billing";
 import { ContractDocumentGrid } from "@/components/ui/ContractDocumentPreview";
 import { generateQrDataUrl, roomUtilityReadingUrl } from "@/lib/qrcode";
 
@@ -38,6 +39,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
   const canWriteRoom = hasPermission(matrix, user.role, PERMISSIONS.ROOMS_WRITE);
   const canWriteContract = hasPermission(matrix, user.role, PERMISSIONS.CONTRACTS_WRITE);
   const activeContract = room.contracts.find((c) => c.status === "ACTIVE");
+  const activeFixedFees = contractFixedUtilityFees(activeContract);
   const qrDataUrl = await generateQrDataUrl(await roomUtilityReadingUrl(room.id));
 
   return (
@@ -164,6 +166,19 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                         <Users className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         {activeContract.occupants} {activeContract.occupants === 1 ? "person" : "people"} staying
                       </p>
+                      {hasFixedUtilityFee(activeFixedFees) ? (
+                        <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500">
+                          <Droplets className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          Fixed utilities: water{" "}
+                          {activeFixedFees.water !== null
+                            ? `${formatMoney(activeFixedFees.water, settings)}/mo`
+                            : "metered"}
+                          , electricity{" "}
+                          {activeFixedFees.electricity !== null
+                            ? `${formatMoney(activeFixedFees.electricity, settings)}/mo`
+                            : "metered"}
+                        </p>
+                      ) : null}
                     </div>
                     <ContractStatusBadge status={activeContract.status} />
                   </div>

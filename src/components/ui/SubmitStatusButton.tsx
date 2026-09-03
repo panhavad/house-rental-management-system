@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslatedChildren } from "@/components/LanguageProvider";
 
 /**
  * Internal building block shared by `Button` and `DeleteButton`: renders a
@@ -30,11 +31,12 @@ export function SubmitStatusButton({
 }) {
   const { pending } = useFormStatus();
   const showSpinner = loading || (props.type === "submit" && pending);
+  const label = useTranslatedChildren(children);
 
   return (
     <button className={className} disabled={disabled || showSpinner} {...props}>
       {showSpinner ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : icon}
-      {children}
+      {label}
     </button>
   );
 }

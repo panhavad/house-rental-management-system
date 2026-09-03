@@ -5,13 +5,15 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { StatusLink } from "@/components/ui/StatusLink";
 import { RestoreButton } from "@/components/ui/RestoreButton";
 import { WorkspaceGrid } from "@/app/super-admin/WorkspaceGrid";
+import { MaintenanceCard } from "@/app/super-admin/MaintenanceCard";
 import { Plus, FlaskConical, Trash2, Download } from "lucide-react";
 import { findDemoWorkspace, DEMO_ACCOUNTS, DEMO_ADMIN_PASSWORD } from "@/lib/demo-data";
 import { loadDemoDataAction, unloadDemoDataAction } from "@/app/super-admin/actions";
 import { restoreAnyWorkspaceBackupAction } from "@/app/super-admin/backup-actions";
+import { getMaintenanceSetting } from "@/lib/maintenance";
 
 export default async function SuperAdminDashboardPage() {
-  const [workspaces, demoWorkspace] = await Promise.all([
+  const [workspaces, demoWorkspace, maintenance] = await Promise.all([
     prisma.workspace.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -19,6 +21,7 @@ export default async function SuperAdminDashboardPage() {
       },
     }),
     findDemoWorkspace(),
+    getMaintenanceSetting(),
   ]);
 
   const workspaceSummaries = workspaces.map((workspace) => ({
@@ -52,6 +55,12 @@ export default async function SuperAdminDashboardPage() {
             />
           </>
         }
+      />
+
+      <MaintenanceCard
+        enabled={maintenance.enabled}
+        message={maintenance.message}
+        startedAtLabel={maintenance.startedAt ? new Date(maintenance.startedAt).toLocaleString() : null}
       />
 
       <CollapsibleCard

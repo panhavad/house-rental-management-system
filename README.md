@@ -47,17 +47,28 @@ history — with role-based access control.
 - **Contracts** — start a contract (tenant, occupant count, deposit, rent, period), end it, or
   terminate it early with a reason. Full contract history is kept per room, including multiple
   attached contract documents (PDF or image) with small, low-quality thumbnails for fast loading.
+  A contract can also opt into **fixed / pre-paid utilities**: tick the box and enter a flat
+  monthly price for water and/or electricity. Whichever price is left blank keeps that utility on
+  the normal dynamic (post-paid, metered) billing, so a contract can mix the two — e.g. a fixed
+  water fee with electricity still billed by meter.
 - **Utility consumption** — record monthly water & electricity meter readings per room. Usage is
-  automatically multiplied by the current per-unit rate to compute the monthly utility cost.
+  automatically multiplied by the current per-unit rate to compute the monthly utility cost —
+  unless that utility is fixed in the room's active contract, in which case the reading is still
+  recorded for history but the agreed flat price is charged instead.
   Each room has a printable **QR code** that deep-links straight to its reading form, and a
-  **Scan QR** button opens the device camera to jump to the right room instantly.
+  **Scan QR** button opens the device camera to jump to the right room instantly. **Export QR
+  codes** on the Utilities page turns whatever the page is currently filtered to (every room, one
+  apartment, or a single room) into a print-ready A4 PDF — six cut-out cards per page, each with
+  the room number, apartment name and address next to its QR code.
 - **Multi-currency display** — an administrator can switch their workspace between USD and
   Cambodian Riel (KHR); all amounts are stored in USD and converted for display using a
   configurable exchange rate.
 - **Payments** — rent + utility cost are combined automatically into one payment per room/month.
   A dedicated Payments page lets you filter by status, month, and either a whole apartment or a
   single room (filters apply instantly as you change them), generate missing invoices, and mark
-  payments as paid/overdue.
+  payments as paid/overdue. Generated invoices already include any fixed utility fees (they're
+  known up front, no meter reading needed); metered utilities are added when the reading is
+  recorded.
 - **Dashboard reminders** — a "Needs attention" section (and a header notification badge) surfaces
   overdue payments, rooms missing this month's utility reading, and contracts expiring within 30
   days, each linking straight to the fix.
@@ -75,6 +86,11 @@ history — with role-based access control.
 - **Mobile-friendly & installable** — responsive card layouts for tables on small screens, a 2×2
   stat grid on the dashboard, and a web app manifest + service worker so the app can be installed
   to a phone's home screen ("Add to Home Screen" / PWA install).
+- **Maintenance mode** — the Super Admin can lock the whole platform from `/super-admin` before
+  running an update, a migration or a restore: everyone else is parked on a "system is being
+  updated" page (with an optional custom note like "back around 9pm") while the Super Admin keeps
+  full access. The notice keeps being served even while the app container itself is stopped, so
+  users never hit a browser connection error mid-update — see "Updating a running deployment".
 - **Pagination** — every list view is paginated (10/30/50/100 rows per page, remembered per
   browser via a cookie) so pages stay fast even with a lot of data.
 
@@ -310,6 +326,18 @@ The app ships with a production-ready multi-stage `Dockerfile` and a `docker-com
 that persist the SQLite database and uploaded contract documents in named volumes, so
 they survive image rebuilds and container restarts.
 
+Two containers are started:
+
+| Service | Image             | Role                                                                                                          |
+| ------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `app`   | built from source | Next.js + Prisma + SQLite. Not published on the host — only reachable through `proxy`.                          |
+| `proxy` | `nginx:alpine`    | Publishes `APP_PORT` and forwards everything to `app`; serves the maintenance page whenever `app` is unreachable. |
+
+The `proxy` container is what makes updates invisible to users: it stays up while `app` is
+stopped and rebuilt, answering with the maintenance page (including the Super Admin's own
+message) instead of letting the browser show "this site can't be reached". See
+"Updating a running deployment" below.
+
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes the
@@ -337,20 +365,22 @@ Open `.env.docker` and set:
 
 - `NEXTAUTH_URL` — the public URL this deployment will be reached at (e.g.
   `http://localhost:3000` for local testing, or `https://your-domain.com` in production).
-- `APP_PORT` — the host port to publish the app on (defaults to `3000`).
+- `APP_PORT` — the host port to publish on (defaults to `3000`). This is the port the
+  **`proxy`** container listens on; `app` itself is only reachable from inside the Docker
+  network.
 - `ALLOW_SELF_SIGNUP` — defaults to `false` in this template, so the public `/signup`
   page is disabled and the Super Admin is the only one who can create workspaces. Set to
   `true` if you want to allow anyone to create their own workspace instead.
 
 
-**2. Build and start the container.**
+**2. Build and start the containers.**
 
 ```powershell
 docker compose --env-file .env.docker up -d --build
 ```
 
-This builds the image, creates the `db-data` and `uploads-data` volumes, applies database
-migrations automatically, and starts the app in the background.
+This builds the image, creates the `db-data`, `uploads-data` and `maintenance-data` volumes,
+applies database migrations automatically, and starts the app plus its proxy in the background.
 
 **3. Check it's running.**
 
@@ -387,8 +417,38 @@ then sign in with the demo accounts listed above.
 **6. Stop it** (data is preserved in the volumes):
 
 ```powershell
-docker compose --env-file .env.docker down
+npm run docker:down          # stops the app; the maintenance page stays online
+npm run docker:down:all      # stops everything, including the maintenance page
 ```
+
+`npm run docker:down` deliberately stops only the `app` container. The `proxy` container keeps
+running and answers every request with the maintenance page, which is almost always what you
+want — a full `docker:down:all` leaves visitors with a browser connection error instead.
+
+### Updating a running deployment
+
+The whole point of the `proxy` container: users see a maintenance notice, never an error page.
+
+```powershell
+# 1. In the app: sign in as Super Admin -> /super-admin -> "Maintenance mode" ->
+#    (optionally type a note) -> "Turn on maintenance mode".
+#    Everyone else is locked out from this moment; you keep working normally.
+
+# 2. Pull/copy the new code, then rebuild and restart just the app container:
+npm run docker:update        # docker compose up -d --build app
+
+# 3. Back in /super-admin, click "Turn off maintenance mode".
+```
+
+During step 2 the `app` container is down for a minute or two — the `proxy` container keeps
+serving the maintenance page (with your custom note) the whole time, and `docker-entrypoint.sh`
+applies any new database migrations as the new container boots. If you skip step 1 entirely,
+visitors still get a neutral "temporarily unavailable" page rather than a connection error.
+
+The same holds for unplanned outages (a crash, a host reboot, a failed image build): the proxy
+answers with `docker/maintenance/maintenance.html`, the built-in fallback notice. Both pages are
+plain self-contained HTML — edit `docker/maintenance/maintenance.html` to reword the fallback,
+and `renderMaintenanceHtml()` in `src/lib/maintenance-flag.ts` for the generated one.
 
 ### What the container does on every start
 
@@ -402,12 +462,13 @@ docker compose --env-file .env.docker up -d --build
 
 ### Persistent data
 
-Two named volumes are created automatically:
+Three named volumes are created automatically:
 
-| Volume         | Mounted at              | Contains                                  |
-| -------------- | ------------------------ | ------------------------------------------ |
-| `db-data`      | `/app/data`               | the SQLite database file (`prod.db`)       |
-| `uploads-data` | `/app/data/uploads`       | uploaded contract documents and payment QR images |
+| Volume              | Mounted at               | Contains                                          |
+| ------------------- | ------------------------ | ------------------------------------------------- |
+| `db-data`           | `/app/data`              | the SQLite database file (`prod.db`)              |
+| `uploads-data`      | `/app/data/uploads`      | uploaded contract documents and payment QR images |
+| `maintenance-data`  | `/app/data/maintenance`  | the maintenance-mode flag + generated maintenance page (also mounted read-only into `proxy`) |
 
 > **Upgrading from an older deployment:** `uploads-data` used to be mounted at
 > `/app/public/uploads`. The volume and its contents are unchanged — only the mount point
@@ -467,7 +528,10 @@ ALLOWED_ORIGINS=hrm.example.com,www.hrm.example.com
 ```
 
 Also make sure the proxy allows request bodies of at least 10MB, which is the configured
-upload limit (`serverActions.bodySizeLimit` in `next.config.js`).
+upload limit (`serverActions.bodySizeLimit` in `next.config.js`). The bundled `proxy`
+container already does (`client_max_body_size 12m` in `docker/nginx/default.conf`), and
+forwards `Host`, `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` unchanged, so
+an outer tunnel/proxy in front of it keeps working exactly as before.
 
 ### Useful Docker commands
 
@@ -475,11 +539,13 @@ All of these already use `--env-file .env.docker` under the hood, so they're the
 way to manage the deployment once `.env.docker` exists:
 
 ```powershell
-npm run docker:build   # docker compose build
-npm run docker:up      # docker compose up -d --build  (build + start/update)
-npm run docker:logs    # docker compose logs -f app
-npm run docker:seed    # seed demo data into the running container
-npm run docker:down    # docker compose down  (stops containers, keeps volumes/data)
+npm run docker:build    # docker compose build
+npm run docker:up       # docker compose up -d --build  (build + start everything)
+npm run docker:update   # rebuild + restart ONLY the app (maintenance page stays online)
+npm run docker:logs     # docker compose logs -f app
+npm run docker:seed     # seed demo data into the running container
+npm run docker:down     # stop the app only — visitors keep seeing the maintenance page
+npm run docker:down:all # docker compose down: stops everything, keeps volumes/data
 ```
 
 ### Notes
@@ -508,9 +574,9 @@ npm run docker:down    # docker compose down  (stops containers, keeps volumes/d
 - `npm run db:studio` — open Prisma Studio to browse the database.
 - `npm run clean` — remove compiled/build output (`.next`, `*.tsbuildinfo`, `next-env.d.ts`).
 - `npm run clean:all` — same as `clean`, plus removes `node_modules`.
-- `npm run docker:build` / `docker:up` / `docker:down` / `docker:logs` / `docker:seed` —
-  thin wrappers around the equivalent `docker compose --env-file .env.docker` commands
-  (see "Docker deployment" above).
+- `npm run docker:build` / `docker:up` / `docker:update` / `docker:down` / `docker:down:all` /
+  `docker:logs` / `docker:seed` — thin wrappers around the equivalent
+  `docker compose --env-file .env.docker` commands (see "Docker deployment" above).
 
 ## Project structure
 
@@ -533,14 +599,28 @@ npm run docker:down    # docker compose down  (stops containers, keeps volumes/d
 - `src/lib/currency.ts`, `src/lib/attention.ts`, `src/lib/qrcode.ts`, `src/lib/pagination.ts` —
   per-workspace currency conversion, dashboard "needs attention" queries, QR code generation, and
   shared pagination helpers.
+- `src/lib/room-qr-sheet-pdf.ts` — renders the A4 "utility reading QR codes" sheet (a grid of
+  cut-out cards) behind the Utilities page's **Export QR codes** button.
+- `src/lib/utility-billing.ts` — pure helpers deciding how a utility is charged for a month:
+  a contract's fixed/pre-paid flat price when set, otherwise usage × the workspace rate.
+- `src/lib/maintenance.ts` / `src/lib/maintenance-flag.ts` — platform-wide maintenance mode: the
+  `PlatformSetting` row is the source of truth, mirrored to a small JSON file (read by `proxy.ts`
+  on every request) plus a ready-to-serve `maintenance.html` (served by the nginx container while
+  the app is stopped). `src/instrumentation.ts` re-syncs that mirror on every server start.
+- `src/app/maintenance/page.tsx` — the notice non-Super-Admins are sent to during a maintenance
+  window; returns them to the page they wanted as soon as it ends.
 - `src/app/(app)/*` — the authenticated, workspace-scoped app (dashboard, apartments, rooms,
   utilities, payments, logs, settings incl. users/roles/currency/workspaces, and the `/setup`
   onboarding wizard) sharing a top-nav layout with breadcrumbs.
 - `src/app/super-admin/*` — the platform-wide area only the Super Admin can reach (list/create
-  workspaces, enter a workspace, view its users, enable/disable a workspace).
+  workspaces, enter a workspace, view its users, enable/disable a workspace, and switch
+  platform-wide maintenance mode on/off).
 - `src/app/login` — the sign-in page (outside the app shell). Just Email/Password; if that combo
   resolves to more than one account, `LoginForm.tsx` shows a "continue as…" step in place.
 - `src/app/signup` — the public, self-service "create your workspace" page.
 - `Dockerfile` / `docker-compose.yml` / `docker-entrypoint.sh` — production container build
   (multi-stage: full deps to build, prod-only deps to run) and startup (applies pending
   migrations, then starts the server). See "Docker deployment" above.
+- `docker/nginx/default.conf` / `docker/maintenance/maintenance.html` — the always-on proxy in
+  front of the app and its built-in "temporarily unavailable" page, so stopping the app for an
+  update never shows visitors a browser connection error.

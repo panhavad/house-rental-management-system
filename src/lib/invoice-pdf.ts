@@ -13,6 +13,8 @@ import {
   drawFooters,
   type Cursor,
 } from "@/lib/pdf-layout";
+import type { Locale } from "@/lib/language-catalog";
+import type { Translations } from "@/lib/language-shared";
 
 const PAID_COLOR = rgb(0.09, 0.45, 0.27);
 const OVERDUE_COLOR = rgb(0.75, 0.2, 0.15);
@@ -50,6 +52,8 @@ export type InvoicePdfData = {
   settings: AppSettings;
   paymentMethods: InvoicePaymentMethod[];
   generatedAt: Date;
+  locale: Locale;
+  translations: Translations;
 };
 
 const STATUS_LABELS: Record<InvoicePdfData["payment"]["status"], string> = {
@@ -91,19 +95,20 @@ function drawTwoColumnFields(cursor: Cursor, left: [string, string][], right: [s
  * to write to disk or stream to the browser.
  */
 export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Array> {
-  const cursor = await createPdfCursor();
+  const cursor = await createPdfCursor(data.locale, data.translations);
   const { payment, settings } = data;
+  const { t } = cursor;
 
-  const title = payment.status === "PAID" ? "PAYMENT RECEIPT" : "PAYMENT INVOICE";
+  const title = t(payment.status === "PAID" ? "PAYMENT RECEIPT" : "PAYMENT INVOICE");
   drawParagraph(cursor, title, { size: 18, bold: true, center: true, gapAfter: 4 });
   drawParagraph(cursor, data.workspaceName, { size: 11, center: true, color: MUTED_COLOR, gapAfter: 2 });
-  drawParagraph(cursor, `Generated on ${formatDate(data.generatedAt)}`, {
+  drawParagraph(cursor, t("Generated on {date}", { date: formatDate(data.generatedAt, data.locale) }), {
     size: 9,
     center: true,
     color: MUTED_COLOR,
     gapAfter: 10,
   });
-  drawParagraph(cursor, STATUS_LABELS[payment.status], {
+  drawParagraph(cursor, t(STATUS_LABELS[payment.status]), {
     size: 12,
     bold: true,
     center: true,
@@ -114,53 +119,54 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   drawTwoColumnFields(
     cursor,
     [
-      ["Billed to", data.tenantName ?? "—"],
-      ["Room", `${data.room.name} (${data.room.type})`],
-      ["Apartment", data.apartment.address ? `${data.apartment.name}, ${data.apartment.address}` : data.apartment.name],
+      [t("Billed to"), data.tenantName ?? "—"],
+      [t("Room"), `${data.room.name} (${data.room.type})`],
+      [t("Apartment"), data.apartment.address ? `${data.apartment.name}, ${data.apartment.address}` : data.apartment.name],
     ],
     [
-      ["Invoice #", payment.id],
-      ["Billing period", payment.month],
-      ["Due date", payment.dueDate ? formatDate(payment.dueDate) : "—"],
+      [t("Invoice #"), payment.id],
+      [t("Billing period"), payment.month],
+      [t("Due date"), payment.dueDate ? formatDate(payment.dueDate, data.locale) : "—"],
     ]
   );
   cursor.y -= 10;
 
-  drawSectionHeading(cursor, "Charges");
-  drawField(cursor, "Rent", formatMoney(payment.rentalFee, settings));
-  drawField(cursor, "Utilities (water & electricity)", formatMoney(payment.utilityAmount, settings));
+  drawSectionHeading(cursor, t("Charges"));
+  drawField(cursor, t("Rent"), formatMoney(payment.rentalFee, settings));
+  drawField(cursor, t("Utilities (water & electricity)"), formatMoney(payment.utilityAmount, settings));
   cursor.y -= 4;
-  drawParagraph(cursor, `Total due: ${formatMoney(payment.totalAmount, settings)}`, { size: 13, bold: true, gapAfter: 8 });
+  drawParagraph(cursor, t("Total due: {amount}", { amount: formatMoney(payment.totalAmount, settings) }), { size: 13, bold: true, gapAfter: 8 });
 
   if (payment.status === "PAID") {
-    drawField(cursor, "Paid on", payment.paidAt ? formatDate(payment.paidAt) : "—");
-    if (payment.paidAmount != null) drawField(cursor, "Amount paid", formatMoney(payment.paidAmount, settings));
-    if (payment.method) drawField(cursor, "Paid via", payment.method);
+    drawField(cursor, t("Paid on"), payment.paidAt ? formatDate(payment.paidAt, data.locale) : "—");
+    if (payment.paidAmount != null) drawField(cursor, t("Amount paid"), formatMoney(payment.paidAmount, settings));
+    if (payment.method) drawField(cursor, t("Paid via"), payment.method);
   }
   if (payment.notes) {
-    drawField(cursor, "Notes", payment.notes);
+    drawField(cursor, t("Notes"), payment.notes);
   }
 
   if (data.paymentMethods.length > 0) {
-    drawSectionHeading(cursor, "Ways to Pay");
+    drawSectionHeading(cursor, t("Ways to Pay"));
     for (const method of data.paymentMethods) {
       ensureSpace(cursor, 26);
       drawParagraph(cursor, method.label, { size: 11, bold: true, gapAfter: 4 });
-      if (method.bankName) drawField(cursor, "Bank / provider", method.bankName);
-      if (method.accountName) drawField(cursor, "Account holder", method.accountName);
-      if (method.accountNumber) drawField(cursor, "Account / phone number", method.accountNumber);
-      if (method.notes) drawField(cursor, "Notes", method.notes);
+      if (method.bankName) drawField(cursor, t("Bank / provider"), method.bankName);
+      if (method.accountName) drawField(cursor, t("Account holder"), method.accountName);
+      if (method.accountNumber) drawField(cursor, t("Account / phone number"), method.accountNumber);
+      if (method.notes) drawField(cursor, t("Notes"), method.notes);
 
       if (method.qrImageBytes) {
         const qrSize = 90;
         ensureSpace(cursor, qrSize + 10);
         const image = await cursor.doc.embedPng(method.qrImageBytes);
         cursor.page.drawImage(image, { x: MARGIN, y: cursor.y - qrSize, width: qrSize, height: qrSize });
-        cursor.page.drawText("Scan to pay", {
+        const scanLabel = t("Scan to pay");
+        cursor.page.drawText(scanLabel, {
           x: MARGIN + qrSize + 10,
           y: cursor.y - qrSize / 2 - 5,
           size: 9,
-          font: cursor.font,
+          font: cursor.khmerFont && data.locale === "km" ? cursor.khmerFont : cursor.font,
           color: MUTED_COLOR,
         });
         cursor.y -= qrSize + 10;
@@ -169,7 +175,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     }
   }
 
-  drawFooters(cursor, `Invoice ${payment.id} · Generated ${formatDate(data.generatedAt)}`);
+  drawFooters(cursor, `Invoice ${payment.id} · ${t("Generated {date}", { date: formatDate(data.generatedAt, data.locale) })}`);
 
   return cursor.doc.save();
 }

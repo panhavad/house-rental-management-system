@@ -81,6 +81,37 @@ model LoginPreference {
   updatedAt          DateTime @updatedAt
 }
 
+/// Platform-wide editable translations. English source text lives in the
+/// application catalog; each additional language stores only its overrides.
+model LanguagePack {
+  code         String   @id
+  name         String
+  nativeName   String
+  translations String   @default("{}")
+  updatedAt    DateTime @updatedAt
+}
+
+/**
+ * Platform-wide settings that belong to the deployment itself rather than to any
+ * one workspace — currently just maintenance mode. Always a single row, pinned to
+ * the fixed id `platform` (see src/lib/maintenance.ts) so it can be read/upserted
+ * without first looking up which row is "the" row.
+ */
+model PlatformSetting {
+  id                   String    @id
+  /// While true, everyone except the Super Admin is locked out of the app and
+  /// sent to /maintenance, so a system update can run without concurrent writes.
+  maintenanceMode      Boolean   @default(false)
+  /// Optional note shown to locked-out users ("back at 9pm", ...).
+  maintenanceMessage   String?
+  /// When the current maintenance window was started. Null while not in maintenance.
+  maintenanceStartedAt DateTime?
+  /// The Super Admin who last flipped the switch, kept for the audit trail. No
+  /// foreign key on purpose: the setting must survive that account being deleted.
+  maintenanceById      String?
+  updatedAt            DateTime  @updatedAt
+}
+
 model AppSetting {
   id           String   @id @default(cuid())
   workspaceId  String   @unique
@@ -187,6 +218,12 @@ model Contract {
   /// reading when the contract is started, but can be overridden.
   waterMeterStart       Float          @default(0)
   electricityMeterStart Float          @default(0)
+  /// When true, the utilities below can be billed at a flat monthly price
+  /// instead of by meter usage. Each utility is still independent: a null
+  /// price means that utility stays on the dynamic/post-paid meter billing.
+  fixedUtilityEnabled   Boolean        @default(false)
+  fixedWaterFee         Float?
+  fixedElectricityFee   Float?
   startDate         DateTime
   endDate           DateTime
   status            ContractStatus @default(ACTIVE)
