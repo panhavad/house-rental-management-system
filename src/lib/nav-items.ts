@@ -13,6 +13,7 @@ import {
   Layers,
   DatabaseBackup,
   FileSignature,
+  Landmark,
   LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const ADMIN_ONLY_NAV_ITEMS: NavItem[] = [
   { href: "/settings/users", label: "Users", icon: Users },
   { href: "/settings/currency", label: "Currency", icon: Coins },
+  { href: "/settings/payment-methods", label: "Payment methods", icon: Landmark },
   { href: "/settings/roles", label: "Roles & permissions", icon: Lock },
   { href: "/settings/backup", label: "Backup & restore", icon: DatabaseBackup },
 ];

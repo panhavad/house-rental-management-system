@@ -10,6 +10,7 @@ import { Select, Input } from "@/components/ui/Field";
 import { PaymentStatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { MarkPaidForm } from "@/app/(app)/payments/MarkPaidForm";
+import { InvoiceButtons } from "@/app/(app)/payments/InvoiceButtons";
 import { generateMissingInvoices, markPaid, markOverdue } from "@/app/(app)/payments/actions";
 import { currentMonth } from "@/lib/dates";
 import { FileText, AlertTriangle } from "lucide-react";
@@ -149,6 +150,9 @@ export default async function PaymentsPage({
                       )}
                     </div>
                   ) : null}
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <InvoiceButtons paymentId={p.id} roomLabel={`${p.room.apartment.name}-${p.room.name}`} month={p.month} />
+                  </div>
                 </div>
               </Card>
             ))}
@@ -174,6 +178,7 @@ export default async function PaymentsPage({
                     <th className="px-5 py-3 font-medium">Utilities</th>
                     <th className="px-5 py-3 font-medium">Total</th>
                     <th className="px-5 py-3 font-medium">Status</th>
+                    <th className="px-5 py-3 font-medium">Invoice</th>
                     {canWrite ? <th className="px-5 py-3 font-medium">Actions</th> : null}
                   </tr>
                 </thead>
@@ -193,6 +198,9 @@ export default async function PaymentsPage({
                       </td>
                       <td className="px-5 py-3">
                         <PaymentStatusBadge status={p.status} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <InvoiceButtons paymentId={p.id} roomLabel={`${p.room.apartment.name}-${p.room.name}`} month={p.month} />
                       </td>
                       {canWrite ? (
                         <td className="px-5 py-3">

@@ -53,6 +53,20 @@ export async function duplicateWorkspace(
         });
       }
 
+      if (snapshot.paymentMethods.length) {
+        await tx.paymentMethod.createMany({
+          data: snapshot.paymentMethods.map((pm) => ({
+            workspaceId: workspace.id,
+            label: pm.label,
+            bankName: pm.bankName,
+            accountName: pm.accountName,
+            accountNumber: pm.accountNumber,
+            qrImageUrl: pm.qrImageUrl,
+            notes: pm.notes,
+          })),
+        });
+      }
+
       if (snapshot.rolePermissions.length) {
         await tx.rolePermission.createMany({
           data: snapshot.rolePermissions.map((rp) => ({

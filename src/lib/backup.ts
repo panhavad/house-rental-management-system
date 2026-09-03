@@ -3,6 +3,7 @@ import type {
   Workspace,
   AppSetting,
   ContractTemplate,
+  PaymentMethod,
   RolePermission,
   User,
   Facility,
@@ -53,6 +54,7 @@ export type WorkspaceBackup = {
   workspace: Workspace;
   appSetting: AppSetting | null;
   contractTemplate: ContractTemplate | null;
+  paymentMethods: PaymentMethod[];
   rolePermissions: RolePermission[];
   users: User[];
   facilities: Facility[];
@@ -89,6 +91,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
   const [
     appSetting,
     contractTemplate,
+    paymentMethods,
     rolePermissions,
     users,
     facilities,
@@ -104,6 +107,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
   ] = await Promise.all([
     prisma.appSetting.findUnique({ where: { workspaceId } }),
     prisma.contractTemplate.findUnique({ where: { workspaceId } }),
+    prisma.paymentMethod.findMany({ where: { workspaceId } }),
     prisma.rolePermission.findMany({ where: { workspaceId } }),
     prisma.user.findMany({ where: { workspaceId } }),
     prisma.facility.findMany({ where: { workspaceId } }),
@@ -125,6 +129,7 @@ export async function exportWorkspaceBackup(workspaceId: string): Promise<Worksp
     workspace,
     appSetting,
     contractTemplate,
+    paymentMethods,
     rolePermissions,
     users,
     facilities,
@@ -249,6 +254,7 @@ export async function restoreWorkspaceBackup(backup: WorkspaceBackup): Promise<{
         await tx.activityLog.deleteMany({ where: { workspaceId } });
         await tx.appSetting.deleteMany({ where: { workspaceId } });
         await tx.contractTemplate.deleteMany({ where: { workspaceId } });
+        await tx.paymentMethod.deleteMany({ where: { workspaceId } });
 
         await tx.workspace.upsert({
           where: { id: workspaceId },
@@ -264,6 +270,7 @@ export async function restoreWorkspaceBackup(backup: WorkspaceBackup): Promise<{
 
         if (backup.appSetting) await tx.appSetting.create({ data: backup.appSetting });
         if (backup.contractTemplate) await tx.contractTemplate.create({ data: backup.contractTemplate });
+        if (backup.paymentMethods.length) await tx.paymentMethod.createMany({ data: backup.paymentMethods });
         if (backup.rolePermissions.length) await tx.rolePermission.createMany({ data: backup.rolePermissions });
         if (backup.users.length) await tx.user.createMany({ data: backup.users });
         if (backup.facilities.length) await tx.facility.createMany({ data: backup.facilities });

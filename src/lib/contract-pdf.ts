@@ -1,14 +1,20 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { rgb } from "pdf-lib";
 import { formatMoney, type AppSettings } from "@/lib/currency";
+import {
+  MARGIN,
+  CONTENT_WIDTH,
+  MUTED_COLOR,
+  TEXT_COLOR,
+  type Cursor,
+  createPdfCursor,
+  ensureSpace,
+  drawParagraph,
+  drawSectionHeading,
+  drawField,
+  formatDate,
+  drawFooters,
+} from "@/lib/pdf-layout";
 
-// A4 in points, with generous margins — this is meant to be printed, so it
-// should look right on both A4 and US Letter without the content shifting.
-const PAGE_WIDTH = 595.28;
-const PAGE_HEIGHT = 841.89;
-const MARGIN = 50;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-const TEXT_COLOR = rgb(0.12, 0.12, 0.16);
-const MUTED_COLOR = rgb(0.4, 0.42, 0.48);
 const PREVIEW_COLOR = rgb(0.7, 0.35, 0.05);
 
 export type ContractPdfData = {
@@ -145,10 +151,6 @@ Either party may end this agreement at the end of the lease term by giving writt
 This agreement is governed by the applicable laws of the jurisdiction in which the property is located. By signing below, both parties acknowledge that they have read, understood, and agree to all terms of this agreement.
 `;
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-}
-
 /** Builds the `{{placeholder}}` -> value map for one contract from everything entered on the form. */
 export function buildContractTemplateContext(data: ContractPdfData): Record<string, string> {
   return {
@@ -276,93 +278,6 @@ function renderLinesToNodes(rawLines: string[], context: Record<string, string>)
 // PDF drawing
 // ---------------------------------------------------------------------------
 
-type Cursor = {
-  doc: PDFDocument;
-  page: PDFPage;
-  y: number;
-  font: PDFFont;
-  bold: PDFFont;
-};
-
-function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [""];
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const attempt = current ? `${current} ${word}` : word;
-    if (current && font.widthOfTextAtSize(attempt, size) > maxWidth) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = attempt;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
-function newPage(cursor: Cursor) {
-  cursor.page = cursor.doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  cursor.y = PAGE_HEIGHT - MARGIN;
-}
-
-function ensureSpace(cursor: Cursor, needed: number) {
-  if (cursor.y - needed < MARGIN + 15) {
-    newPage(cursor);
-  }
-}
-
-function drawParagraph(
-  cursor: Cursor,
-  text: string,
-  opts: { size?: number; bold?: boolean; center?: boolean; color?: ReturnType<typeof rgb>; gapAfter?: number } = {}
-) {
-  const size = opts.size ?? 10.5;
-  const font = opts.bold ? cursor.bold : cursor.font;
-  const lines = wrapText(text, font, size, CONTENT_WIDTH);
-  const lineHeight = size * 1.4;
-  for (const line of lines) {
-    ensureSpace(cursor, lineHeight);
-    const width = font.widthOfTextAtSize(line, size);
-    const x = opts.center ? (PAGE_WIDTH - width) / 2 : MARGIN;
-    cursor.page.drawText(line, { x, y: cursor.y, size, font, color: opts.color ?? TEXT_COLOR });
-    cursor.y -= lineHeight;
-  }
-  cursor.y -= opts.gapAfter ?? 4;
-}
-
-function drawSectionHeading(cursor: Cursor, text: string) {
-  ensureSpace(cursor, 30);
-  cursor.y -= 8;
-  drawParagraph(cursor, text, { size: 12, bold: true, gapAfter: 6 });
-}
-
-function drawField(cursor: Cursor, label: string, value: string) {
-  const size = 10;
-  const lineHeight = size * 1.45;
-  const labelText = `${label}: `;
-  const labelWidth = cursor.bold.widthOfTextAtSize(labelText, size);
-  const valueLines = wrapText(value || "—", cursor.font, size, Math.max(60, CONTENT_WIDTH - labelWidth));
-
-  ensureSpace(cursor, lineHeight);
-  cursor.page.drawText(labelText, { x: MARGIN, y: cursor.y, size, font: cursor.bold, color: MUTED_COLOR });
-  cursor.page.drawText(valueLines[0] ?? "—", {
-    x: MARGIN + labelWidth,
-    y: cursor.y,
-    size,
-    font: cursor.font,
-    color: TEXT_COLOR,
-  });
-  cursor.y -= lineHeight;
-
-  for (let i = 1; i < valueLines.length; i++) {
-    ensureSpace(cursor, lineHeight);
-    cursor.page.drawText(valueLines[i], { x: MARGIN + labelWidth, y: cursor.y, size, font: cursor.font, color: TEXT_COLOR });
-    cursor.y -= lineHeight;
-  }
-}
-
 function drawSignatureBlock(cursor: Cursor, heading: string, printedName: string) {
   const columnWidth = (CONTENT_WIDTH - 24) / 2;
   const isLeft = heading === "LANDLORD / PROPERTY MANAGER";
@@ -401,17 +316,7 @@ function drawSignatureBlock(cursor: Cursor, heading: string, printedName: string
  * Returned as raw bytes ready to write to disk or stream to the browser.
  */
 export async function generateContractAgreementPdf(data: ContractPdfData, templateContent?: string | null): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-
-  const cursor: Cursor = {
-    doc,
-    page: doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]),
-    y: PAGE_HEIGHT - MARGIN,
-    font,
-    bold,
-  };
+  const cursor = await createPdfCursor();
 
   const context = buildContractTemplateContext(data);
   const parsed = parseContractTemplate(templateContent?.trim() ? templateContent : DEFAULT_CONTRACT_TEMPLATE);
@@ -465,17 +370,8 @@ export async function generateContractAgreementPdf(data: ContractPdfData, templa
   drawSignatureBlock(cursor, "TENANT", data.contract.tenantName);
   cursor.y -= 90;
 
-  const pages = doc.getPages();
   const footerLabel = data.isPreview ? "Draft preview" : `Contract ${data.contract.id}`;
-  pages.forEach((page, index) => {
-    page.drawText(`${footerLabel} · Generated ${formatDate(data.generatedAt)} · Page ${index + 1} of ${pages.length}`, {
-      x: MARGIN,
-      y: 28,
-      size: 7.5,
-      font,
-      color: MUTED_COLOR,
-    });
-  });
+  drawFooters(cursor, `${footerLabel} · Generated ${formatDate(data.generatedAt)}`);
 
-  return doc.save();
+  return cursor.doc.save();
 }

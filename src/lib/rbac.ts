@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   RATES_WRITE: "rates:write",
   USERS_WRITE: "users:write",
   CURRENCY_WRITE: "currency:write",
+  PAYMENT_METHODS_WRITE: "payment-methods:write",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -133,6 +134,7 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   [PERMISSIONS.RATES_WRITE]: "Add new utility rates (water/electricity price per unit)",
   [PERMISSIONS.USERS_WRITE]: "Create user accounts and change roles or active status",
   [PERMISSIONS.CURRENCY_WRITE]: "Change the system's display currency and exchange rate",
+  [PERMISSIONS.PAYMENT_METHODS_WRITE]: "Manage the bank accounts / QR codes shown on generated invoices",
 };
 
 /** Baseline capabilities every signed-in user has, regardless of role. */

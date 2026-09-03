@@ -64,6 +64,7 @@ model Workspace {
   rolePermissions  RolePermission[]
   activityLogs     ActivityLog[]
   contractTemplate ContractTemplate?
+  paymentMethods   PaymentMethod[]
 }
 
 /**
@@ -86,6 +87,27 @@ model AppSetting {
   currency     Currency @default(USD)
   exchangeRate Float    @default(4100)
   updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * A way tenants can pay their rent/utility bill (bank transfer, e-wallet QR,
+ * cash, ...), configured by the workspace admin and printed on generated
+ * invoices so the tenant knows exactly how to send payment. A workspace can
+ * have several (e.g. one bank account plus one e-wallet QR).
+ */
+model PaymentMethod {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  label         String
+  bankName      String?
+  accountName   String?
+  accountNumber String?
+  qrImageUrl    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

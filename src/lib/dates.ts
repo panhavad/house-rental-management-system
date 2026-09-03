@@ -13,3 +13,9 @@ export function lastDayOfMonth(month: string): Date {
   const [year, mon] = month.split("-").map(Number);
   return new Date(year, mon, 0);
 }
+
+/** Returns the first calendar day of the given "YYYY-MM" month as a Date. */
+export function firstDayOfMonth(month: string): Date {
+  const [year, mon] = month.split("-").map(Number);
+  return new Date(year, mon - 1, 1);
+}
