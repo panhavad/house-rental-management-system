@@ -1,15 +1,16 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Button, FilterButton } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
-import { Select, Input } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Field";
+import { FilterBar, FilterSelect, FilterMonth, ApartmentRoomFilter } from "@/components/ui/FilterBar";
 import { PaymentStatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { MarkPaidForm } from "@/app/(app)/payments/MarkPaidForm";
 import { InvoiceButtons } from "@/app/(app)/payments/InvoiceButtons";
 import { generateMissingInvoices, markPaid, markOverdue } from "@/app/(app)/payments/actions";
@@ -22,11 +23,18 @@ import { getAppSettings, formatMoney } from "@/lib/currency";
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; roomId?: string; month?: string; page?: string; pageSize?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    apartmentId?: string;
+    roomId?: string;
+    month?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
 }) {
   const user = await requireWorkspaceUser();
   const matrix = await getRolePermissionMatrix(user.workspaceId);
-  const { status, roomId, month, page: pageParam, pageSize: pageSizeParam } = await searchParams;
+  const { status, apartmentId, roomId, month, page: pageParam, pageSize: pageSizeParam } = await searchParams;
   const canWrite = hasPermission(matrix, user.role, PERMISSIONS.PAYMENTS_WRITE);
   const cookieStore = await cookies();
 
@@ -36,10 +44,14 @@ export default async function PaymentsPage({
     status: status ? (status as "PENDING" | "PAID" | "OVERDUE") : undefined,
     roomId: roomId || undefined,
     month: month || undefined,
-    room: { apartment: { workspaceId: user.workspaceId } },
+    room: {
+      apartment: { workspaceId: user.workspaceId },
+      // A room filter is already more specific than its apartment.
+      ...(!roomId && apartmentId ? { apartmentId } : {}),
+    },
   };
 
-  const [payments, totalCount, rooms, settings] = await Promise.all([
+  const [payments, totalCount, apartments, settings] = await Promise.all([
     prisma.payment.findMany({
       where,
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
@@ -47,10 +59,10 @@ export default async function PaymentsPage({
       ...paginationSkipTake(page, pageSize),
     }),
     prisma.payment.count({ where }),
-    prisma.room.findMany({
-      where: { apartment: { workspaceId: user.workspaceId } },
+    prisma.apartment.findMany({
+      where: { workspaceId: user.workspaceId },
       orderBy: { name: "asc" },
-      include: { apartment: true },
+      select: { id: true, name: true, rooms: { orderBy: { name: "asc" }, select: { id: true, name: true } } },
     }),
     getAppSettings(user.workspaceId),
   ]);
@@ -64,24 +76,25 @@ export default async function PaymentsPage({
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
-        <form method="get" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-          <Select name="status" defaultValue={status ?? ""} className="w-full sm:w-40">
+        <FilterBar
+          values={{ status, apartmentId, roomId, month, pageSize: pageSizeParam }}
+          clearableKeys={["status", "apartmentId", "roomId", "month"]}
+          className="mb-0"
+        >
+          <FilterSelect name="status" label="Filter by status" value={status ?? ""} className="w-full sm:w-40">
             <option value="">All statuses</option>
             <option value="PENDING">Pending</option>
             <option value="PAID">Paid</option>
             <option value="OVERDUE">Overdue</option>
-          </Select>
-          <Select name="roomId" defaultValue={roomId ?? ""} className="w-full sm:w-52">
-            <option value="">All rooms</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.apartment.name} · {room.name}
-              </option>
-            ))}
-          </Select>
-          <Input name="month" type="month" defaultValue={month ?? ""} className="w-full sm:w-40" />
-          <FilterButton />
-        </form>
+          </FilterSelect>
+          <ApartmentRoomFilter
+            apartments={apartments}
+            apartmentId={apartmentId ?? ""}
+            roomId={roomId ?? ""}
+            className="w-full sm:w-64"
+          />
+          <FilterMonth name="month" label="Filter by month" value={month ?? ""} className="w-full sm:w-40" />
+        </FilterBar>
 
         {canWrite ? (
           <form action={generateMissingInvoices} className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -106,9 +119,13 @@ export default async function PaymentsPage({
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <Link href={`/rooms/${p.roomId}`} className="font-medium text-slate-900 hover:underline">
+                      <StatusLink
+                        href={`/rooms/${p.roomId}`}
+                        className="inline-flex items-center gap-1.5 font-medium text-slate-900 hover:underline"
+                        spinnerClassName="h-3.5 w-3.5"
+                      >
                         {p.room.apartment.name} · {p.room.name}
-                      </Link>
+                      </StatusLink>
                       <p className="text-xs text-slate-400">{p.month}</p>
                     </div>
                     <PaymentStatusBadge status={p.status} />
@@ -162,7 +179,7 @@ export default async function PaymentsPage({
                 page={page}
                 pageSize={pageSize}
                 totalCount={totalCount}
-                searchParams={{ status, roomId, month }}
+                searchParams={{ status, apartmentId, roomId, month }}
               />
             </Card>
           </div>
@@ -187,9 +204,13 @@ export default async function PaymentsPage({
                   {payments.map((p) => (
                     <tr key={p.id}>
                       <td className="px-5 py-3">
-                        <Link href={`/rooms/${p.roomId}`} className="text-slate-700 hover:underline">
+                        <StatusLink
+                          href={`/rooms/${p.roomId}`}
+                          className="inline-flex items-center gap-1.5 text-slate-700 hover:underline"
+                          spinnerClassName="h-3.5 w-3.5"
+                        >
                           {p.room.apartment.name} · {p.room.name}
-                        </Link>
+                        </StatusLink>
                       </td>
                       <td className="px-5 py-3 text-slate-600">{p.month}</td>
                       <td className="px-5 py-3 text-slate-600">{formatMoney(p.rentalFee, settings)}</td>
@@ -236,7 +257,7 @@ export default async function PaymentsPage({
               page={page}
               pageSize={pageSize}
               totalCount={totalCount}
-              searchParams={{ status, roomId, month }}
+              searchParams={{ status, apartmentId, roomId, month }}
             />
           </Card>
         </>

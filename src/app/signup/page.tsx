@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { SignupForm } from "@/app/signup/SignupForm";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { isSelfSignupEnabled } from "@/lib/config";
 
 // Without this, Next.js prerenders the page once at build time and freezes the
@@ -25,9 +25,13 @@ export default function SignupPage() {
         <SignupForm />
         <p className="mt-6 text-center text-sm text-slate-500">
           Already have a workspace?{" "}
-          <Link href="/login" className="font-medium text-slate-900 hover:underline">
+          <StatusLink
+            href="/login"
+            className="inline-flex items-center gap-1.5 font-medium text-slate-900 hover:underline"
+            spinnerClassName="h-3.5 w-3.5"
+          >
             Sign in
-          </Link>
+          </StatusLink>
         </p>
       </div>
     </div>

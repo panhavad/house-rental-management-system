@@ -3,7 +3,7 @@ import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
-import Link from "next/link";
+import { StatusLink, CardLink } from "@/components/ui/StatusLink";
 import {
   Building2,
   DoorOpen,
@@ -17,6 +17,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { getAttentionSummary, AttentionItem } from "@/lib/attention";
+
+const ATTENTION_PREVIEW_LIMIT = 5;
 
 function StatCard({
   label,
@@ -40,7 +42,7 @@ function StatCard({
       </CardBody>
     </Card>
   );
-  return href ? <Link href={href}>{content}</Link> : content;
+  return href ? <CardLink href={href}>{content}</CardLink> : content;
 }
 
 function AttentionGroup({
@@ -77,9 +79,13 @@ function AttentionGroup({
         <ul className="space-y-1 pl-9">
           {items.map((item) => (
             <li key={item.id} className="text-sm">
-              <Link href={item.href} className="text-slate-700 hover:underline">
+              <StatusLink
+                href={item.href}
+                className="inline-flex items-center gap-1.5 text-slate-700 hover:underline"
+                spinnerClassName="h-3.5 w-3.5"
+              >
                 {item.label}
-              </Link>
+              </StatusLink>
               <span className="text-slate-400"> — {item.detail}</span>
             </li>
           ))}
@@ -184,21 +190,21 @@ export default async function DashboardPage() {
                 icon={AlertTriangle}
                 tone="red"
                 count={attention.overdueCount}
-                items={attention.overduePayments}
+                items={attention.overduePayments.slice(0, ATTENTION_PREVIEW_LIMIT)}
               />
               <AttentionGroup
                 title="Missing this month's reading"
                 icon={Droplets}
                 tone="sky"
                 count={attention.missingReadingsCount}
-                items={attention.missingReadings}
+                items={attention.missingReadings.slice(0, ATTENTION_PREVIEW_LIMIT)}
               />
               <AttentionGroup
                 title="Contracts expiring soon"
                 icon={FileClock}
                 tone="amber"
                 count={attention.expiringContractsCount}
-                items={attention.expiringContracts}
+                items={attention.expiringContracts.slice(0, ATTENTION_PREVIEW_LIMIT)}
               />
             </div>
           </Card>

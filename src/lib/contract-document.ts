@@ -1,8 +1,9 @@
-import { mkdir, writeFile, unlink } from "fs/promises";
+import { writeFile } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { deleteUpload, ensureUploadDir, uploadUrl } from "@/lib/uploads";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "contracts");
+const UPLOAD_FOLDER = "contracts";
 const ALLOWED_TYPES: Record<string, string> = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
@@ -36,12 +37,12 @@ export async function saveContractDocument(file: File, contractId: string): Prom
     throw new Error("File is too large (max 10MB).");
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  const uploadDir = await ensureUploadDir(UPLOAD_FOLDER);
 
   const base = uniqueBaseName(contractId);
   const filename = `${base}.${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, filename), buffer);
+  await writeFile(path.join(uploadDir, filename), buffer);
 
   const isImage = extension !== "pdf";
   let thumbnailUrl: string | null = null;
@@ -51,12 +52,12 @@ export async function saveContractDocument(file: File, contractId: string): Prom
     await sharp(buffer)
       .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: "cover" })
       .jpeg({ quality: THUMBNAIL_QUALITY })
-      .toFile(path.join(UPLOAD_DIR, thumbFilename));
-    thumbnailUrl = `/uploads/contracts/${thumbFilename}`;
+      .toFile(path.join(uploadDir, thumbFilename));
+    thumbnailUrl = uploadUrl(UPLOAD_FOLDER, thumbFilename);
   }
 
   return {
-    url: `/uploads/contracts/${filename}`,
+    url: uploadUrl(UPLOAD_FOLDER, filename),
     thumbnailUrl,
     fileType: isImage ? "image" : "pdf",
   };
@@ -77,13 +78,13 @@ export async function saveContractDocuments(
 
 /** Saves a server-generated PDF (e.g. the auto-drafted rental agreement) alongside any uploaded documents. */
 export async function saveGeneratedContractPdf(bytes: Uint8Array, contractId: string): Promise<SavedContractDocument> {
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  const uploadDir = await ensureUploadDir(UPLOAD_FOLDER);
 
   const filename = `${uniqueBaseName(contractId)}-agreement.pdf`;
-  await writeFile(path.join(UPLOAD_DIR, filename), bytes);
+  await writeFile(path.join(uploadDir, filename), bytes);
 
   return {
-    url: `/uploads/contracts/${filename}`,
+    url: uploadUrl(UPLOAD_FOLDER, filename),
     thumbnailUrl: null,
     fileType: "pdf",
   };
@@ -95,11 +96,6 @@ export async function deleteContractDocumentFiles(doc: {
   thumbnailUrl?: string | null;
 }): Promise<void> {
   for (const url of [doc.url, doc.thumbnailUrl]) {
-    if (!url || !url.startsWith("/uploads/contracts/")) continue;
-    try {
-      await unlink(path.join(process.cwd(), "public", url));
-    } catch {
-      // Ignore if the file is already gone.
-    }
+    await deleteUpload(url);
   }
 }

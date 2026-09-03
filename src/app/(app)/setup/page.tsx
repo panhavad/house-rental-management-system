@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { StatusLink } from "@/components/ui/StatusLink";
 import {
   setupSaveCurrency,
   setupCreateApartment,
@@ -138,13 +138,13 @@ async function CurrencyStep({ workspaceId }: { workspaceId: string }) {
           <Button type="submit" icon={ArrowRight}>
             Save &amp; continue
           </Button>
-          <Link
+          <StatusLink
             href="/setup?step=2"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+            icon={<SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />}
           >
-            <SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />
             Skip for now
-          </Link>
+          </StatusLink>
         </div>
       </form>
     </div>
@@ -176,21 +176,21 @@ async function ApartmentStep({ workspaceId }: { workspaceId: string }) {
             Create &amp; continue
           </Button>
           {existingApartment ? (
-            <Link
+            <StatusLink
               href={`/setup?step=3&apartmentId=${existingApartment.id}`}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+              icon={<SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />}
             >
-              <SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />
               Use existing &quot;{existingApartment.name}&quot;
-            </Link>
+            </StatusLink>
           ) : (
-            <Link
+            <StatusLink
               href="/setup?step=4"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+              icon={<SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />}
             >
-              <SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />
               Skip for now
-            </Link>
+            </StatusLink>
           )}
         </div>
       </form>
@@ -220,13 +220,13 @@ function RoomStep({ apartmentId }: { apartmentId: string }) {
           <Button type="submit" icon={ArrowRight}>
             Create &amp; continue
           </Button>
-          <Link
+          <StatusLink
             href="/setup?step=4"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+            icon={<SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />}
           >
-            <SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />
             Skip for now
-          </Link>
+          </StatusLink>
         </div>
       </form>
     </div>
@@ -252,13 +252,13 @@ function RatesStep() {
           <Button type="submit" icon={ArrowRight}>
             Save &amp; continue
           </Button>
-          <Link
+          <StatusLink
             href="/setup?step=5"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+            icon={<SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />}
           >
-            <SkipForward className="h-4 w-4 shrink-0" aria-hidden="true" />
             Skip for now
-          </Link>
+          </StatusLink>
         </div>
       </form>
     </div>

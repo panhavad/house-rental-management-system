@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { RestoreButton } from "@/components/ui/RestoreButton";
 import { WorkspaceGrid } from "@/app/super-admin/WorkspaceGrid";
 import { Plus, FlaskConical, Trash2, Download } from "lucide-react";
@@ -118,12 +118,12 @@ export default async function SuperAdminDashboardPage() {
                 </tbody>
               </table>
             </div>
-            <Link
+            <StatusLink
               href={`/super-admin/workspaces/${demoWorkspace.id}`}
-              className="mt-3 inline-block text-sm font-medium text-slate-900 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 hover:underline"
             >
               View demo workspace →
-            </Link>
+            </StatusLink>
           </div>
         ) : null}
       </CollapsibleCard>

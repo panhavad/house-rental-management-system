@@ -78,11 +78,25 @@ export function ContractTemplateEditor({
         <Button type="submit" icon={Save}>
           Save template
         </Button>
-        <Button type="button" variant="secondary" icon={Eye} disabled={isPreviewing} onClick={handlePreview}>
+        <Button
+          type="button"
+          variant="secondary"
+          icon={Eye}
+          loading={isPreviewing}
+          disabled={isPreviewing}
+          onClick={handlePreview}
+        >
           {isPreviewing ? "Preparing preview…" : "Preview with sample data"}
         </Button>
         {isCustomized ? (
-          <Button type="button" variant="secondary" icon={RotateCcw} disabled={isResetting} onClick={handleReset}>
+          <Button
+            type="button"
+            variant="secondary"
+            icon={RotateCcw}
+            loading={isResetting}
+            disabled={isResetting}
+            onClick={handleReset}
+          >
             {isResetting ? "Resetting…" : "Reset to default"}
           </Button>
         ) : null}

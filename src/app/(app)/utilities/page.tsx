@@ -1,13 +1,13 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { LinkButton, FilterButton } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Field";
+import { LinkButton } from "@/components/ui/Button";
+import { FilterBar, ApartmentRoomFilter } from "@/components/ui/FilterBar";
 import { Pagination } from "@/components/ui/Pagination";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { Droplets, Zap } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 import { resolvePage, resolvePageSize, paginationSkipTake, PAGE_SIZE_COOKIE } from "@/lib/pagination";
@@ -16,21 +16,25 @@ import { QrScanButton } from "@/components/ui/QrScanButton";
 export default async function UtilitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ roomId?: string; page?: string; pageSize?: string }>;
+  searchParams: Promise<{ apartmentId?: string; roomId?: string; page?: string; pageSize?: string }>;
 }) {
   const user = await requireWorkspaceUser();
   const matrix = await getRolePermissionMatrix(user.workspaceId);
-  const { roomId, page: pageParam, pageSize: pageSizeParam } = await searchParams;
+  const { apartmentId, roomId, page: pageParam, pageSize: pageSizeParam } = await searchParams;
   const cookieStore = await cookies();
 
   const page = resolvePage(pageParam);
   const pageSize = resolvePageSize(pageSizeParam, cookieStore.get(PAGE_SIZE_COOKIE)?.value);
   const where = {
-    room: { apartment: { workspaceId: user.workspaceId } },
+    room: {
+      apartment: { workspaceId: user.workspaceId },
+      // A room filter is already more specific than its apartment.
+      ...(!roomId && apartmentId ? { apartmentId } : {}),
+    },
     ...(roomId ? { roomId } : {}),
   };
 
-  const [readings, totalCount, rooms, settings] = await Promise.all([
+  const [readings, totalCount, apartments, settings] = await Promise.all([
     prisma.utilityReading.findMany({
       where,
       orderBy: { month: "desc" },
@@ -38,10 +42,10 @@ export default async function UtilitiesPage({
       ...paginationSkipTake(page, pageSize),
     }),
     prisma.utilityReading.count({ where }),
-    prisma.room.findMany({
-      where: { apartment: { workspaceId: user.workspaceId } },
+    prisma.apartment.findMany({
+      where: { workspaceId: user.workspaceId },
       orderBy: { name: "asc" },
-      include: { apartment: true },
+      select: { id: true, name: true, rooms: { orderBy: { name: "asc" }, select: { id: true, name: true } } },
     }),
     getAppSettings(user.workspaceId),
   ]);
@@ -64,19 +68,17 @@ export default async function UtilitiesPage({
         }
       />
 
-      <form method="get" className="mb-4 flex max-w-md items-end gap-2">
-        <div className="flex-1">
-          <Select name="roomId" defaultValue={roomId ?? ""}>
-            <option value="">All rooms</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.apartment.name} · {room.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <FilterButton />
-      </form>
+      <FilterBar
+        values={{ apartmentId, roomId, pageSize: pageSizeParam }}
+        clearableKeys={["apartmentId", "roomId"]}
+      >
+        <ApartmentRoomFilter
+          apartments={apartments}
+          apartmentId={apartmentId ?? ""}
+          roomId={roomId ?? ""}
+          className="w-full sm:w-72"
+        />
+      </FilterBar>
 
       {readings.length === 0 ? (
         <Card>
@@ -90,9 +92,13 @@ export default async function UtilitiesPage({
               <Card key={r.id}>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={`/rooms/${r.roomId}`} className="font-medium text-slate-900 hover:underline">
+                    <StatusLink
+                      href={`/rooms/${r.roomId}`}
+                      className="inline-flex items-center gap-1.5 font-medium text-slate-900 hover:underline"
+                      spinnerClassName="h-3.5 w-3.5"
+                    >
                       {r.room.apartment.name} · {r.room.name}
-                    </Link>
+                    </StatusLink>
                     <span className="shrink-0 text-xs text-slate-400">{r.month}</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -119,7 +125,12 @@ export default async function UtilitiesPage({
               </Card>
             ))}
             <Card>
-              <Pagination page={page} pageSize={pageSize} totalCount={totalCount} searchParams={{ roomId }} />
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalCount={totalCount}
+                searchParams={{ apartmentId, roomId }}
+              />
             </Card>
           </div>
 
@@ -140,9 +151,13 @@ export default async function UtilitiesPage({
                   {readings.map((r) => (
                     <tr key={r.id}>
                       <td className="px-5 py-3">
-                        <Link href={`/rooms/${r.roomId}`} className="text-slate-700 hover:underline">
+                        <StatusLink
+                          href={`/rooms/${r.roomId}`}
+                          className="inline-flex items-center gap-1.5 text-slate-700 hover:underline"
+                          spinnerClassName="h-3.5 w-3.5"
+                        >
                           {r.room.apartment.name} · {r.room.name}
-                        </Link>
+                        </StatusLink>
                       </td>
                       <td className="px-5 py-3 text-slate-600">{r.month}</td>
                       <td className="px-5 py-3 text-slate-600">
@@ -159,7 +174,12 @@ export default async function UtilitiesPage({
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} pageSize={pageSize} totalCount={totalCount} searchParams={{ roomId }} />
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              searchParams={{ apartmentId, roomId }}
+            />
           </Card>
         </>
       )}

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { LogIn, Loader2, Mail, Lock, Building2, ShieldCheck, ArrowLeft } from "lucide-react";
@@ -8,6 +7,7 @@ import { Role } from "@prisma/client";
 import { loginAction } from "@/app/login/actions";
 import { LoginState, SUPER_ADMIN_SELECTION } from "@/app/login/login-types";
 import { Field, Input } from "@/components/ui/Field";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { ROLE_LABELS } from "@/lib/rbac";
 
 const initialState: LoginState = {};
@@ -104,13 +104,14 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
 
         <SubmitButton label="Continue" pendingLabel="Signing in…" />
 
-        <Link
+        <StatusLink
           href="/login"
           className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+          icon={<ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+          spinnerClassName="h-3.5 w-3.5"
         >
-          <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           Use a different account
-        </Link>
+        </StatusLink>
       </form>
     );
   }

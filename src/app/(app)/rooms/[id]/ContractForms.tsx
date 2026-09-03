@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
-import { Ban, ShieldAlert, X, FilePlus2, Upload, Eye, PencilLine, AlertTriangle, User, Phone, Mail, IdCard, Users, DollarSign, Wallet, Droplets, Zap, CalendarDays, CalendarClock, Paperclip, StickyNote, MessageSquareWarning, KeyRound } from "lucide-react";
+import { Ban, ShieldAlert, X, FilePlus2, Upload, Eye, PencilLine, AlertTriangle, User, Phone, Mail, IdCard, Users, DollarSign, Wallet, Droplets, Zap, CalendarDays, CalendarClock, Paperclip, StickyNote, MessageSquareWarning, KeyRound, FileText, ExternalLink, Loader2 } from "lucide-react";
 
 export function UploadDocumentForm({ action, label = "Add documents" }: { action: (formData: FormData) => void; label?: string }) {
   const [open, setOpen] = useState(false);
@@ -90,6 +90,157 @@ export function TerminateContractForm({ action }: { action: (formData: FormData)
 
 type PreviewResult = { pdfBase64: string } | { error: string };
 
+/**
+ * Shared state for the contract PDFs rendered on this page: runs a server action
+ * that returns a base64 PDF, turns it into an object URL for an `<iframe>`, and
+ * makes sure previous URLs are revoked instead of leaking.
+ */
+function useContractPdf() {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [url]);
+
+  function load(run: () => Promise<PreviewResult>) {
+    setError(null);
+    startTransition(async () => {
+      const result = await run();
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      const bytes = Uint8Array.from(atob(result.pdfBase64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      setUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return URL.createObjectURL(blob);
+      });
+    });
+  }
+
+  const clear = useCallback(() => {
+    setError(null);
+    setUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+  }, []);
+
+  return { url, error, isPending, load, clear };
+}
+
+/**
+ * Opens the agreement of an already-started contract in a modal viewer, so the
+ * details that were signed off can be checked without leaving the room page.
+ */
+export function ReviewContractButton({ action, tenantName }: { action: () => Promise<PreviewResult>; tenantName?: string }) {
+  const [open, setOpen] = useState(false);
+  const { url, error, isPending, load, clear } = useContractPdf();
+
+  const close = useCallback(() => {
+    setOpen(false);
+    clear();
+  }, [clear]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") close();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, close]);
+
+  function handleOpen() {
+    setOpen(true);
+    load(action);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+      >
+        <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
+        Review contract
+      </button>
+
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Contract agreement"
+          onClick={close}
+        >
+          <div
+            className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+                  <FileText className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                  Contract agreement
+                </h2>
+                {tenantName ? <p className="truncate text-xs text-slate-500">{tenantName}</p> : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    Open in new tab
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={close}
+                  className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100"
+                  aria-label="Close contract"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex min-h-[60vh] flex-1 items-center justify-center bg-slate-50 p-3">
+              {error ? (
+                <p className="flex items-center gap-1.5 text-sm text-red-600">
+                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {error}
+                </p>
+              ) : url ? (
+                <iframe
+                  src={url}
+                  title="Contract agreement"
+                  className="h-[70vh] w-full rounded-md border border-slate-200 bg-white"
+                />
+              ) : (
+                <p className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                  {isPending ? "Loading contract…" : "Preparing contract…"}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 /** Small labeled divider used to visually group related fields within a longer form. */
 function FormSectionHeading({ icon: Icon, label }: { icon: typeof User; label: string }) {
   return (
@@ -116,42 +267,12 @@ export function StartContractForm({
   hasMeterHistory?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  // Revoke the previous object URL whenever it's replaced or the form unmounts,
-  // so previewing several times in a row doesn't leak blob URLs.
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  const { url: previewUrl, error: previewError, isPending, load, clear: closePreview } = useContractPdf();
 
   function handlePreview() {
     if (!formRef.current) return;
     const formData = new FormData(formRef.current);
-    setPreviewError(null);
-    startTransition(async () => {
-      const result = await previewAction(formData);
-      if ("error" in result) {
-        setPreviewError(result.error);
-        return;
-      }
-      const bytes = Uint8Array.from(atob(result.pdfBase64), (c) => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      setPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return URL.createObjectURL(blob);
-      });
-    });
-  }
-
-  function closePreview() {
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+    load(() => previewAction(formData));
   }
 
   return (

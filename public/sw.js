@@ -1,8 +1,10 @@
 // Minimal service worker: enables "Add to Home Screen" installability and a
-// small offline-friendly cache for the app shell. Network requests always try
-// the network first so data (rooms, payments, etc.) stays fresh.
-const CACHE_NAME = "rentalhrm-shell-v1";
-const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+// small offline-friendly cache for static app-shell assets. Streamed responses
+// (HTML documents and React Server Component payloads) are never intercepted,
+// because buffering them through the cache stalls Next.js streaming and leaves
+// pages stuck on their loading skeleton.
+const CACHE_NAME = "rentalhrm-shell-v2";
+const SHELL_ASSETS = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -21,15 +23,23 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const { request } = event;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Leave streamed navigations and RSC payloads entirely to the browser.
+  if (request.mode === "navigate" || request.destination === "document") return;
+  if (request.headers.get("RSC") || url.searchParams.has("_rsc")) return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(request))
   );
 });

@@ -21,7 +21,10 @@ next-env.d.ts
 /prisma/dev.db-journal
 
 # ---- User-uploaded files ----
-# Contract documents uploaded through the app — never commit real user data.
+# Files uploaded through the app — never commit real user data. `/data/uploads` is
+# the current location (served by the /uploads route); `/public/uploads` is the
+# legacy one, still read so existing installs keep working.
+/data/
 /public/uploads/*
 !/public/uploads/.gitkeep
 

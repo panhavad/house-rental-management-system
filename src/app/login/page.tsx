@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { LoginForm } from "@/app/login/LoginForm";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { isSelfSignupEnabled } from "@/lib/config";
 
 export default async function LoginPage({
@@ -20,9 +20,13 @@ export default async function LoginPage({
         {isSelfSignupEnabled() ? (
           <p className="mt-6 text-center text-sm text-slate-500">
             New here?{" "}
-            <Link href="/signup" className="font-medium text-slate-900 hover:underline">
+            <StatusLink
+              href="/signup"
+              className="inline-flex items-center gap-1.5 font-medium text-slate-900 hover:underline"
+              spinnerClassName="h-3.5 w-3.5"
+            >
               Create your workspace
-            </Link>
+            </StatusLink>
           </p>
         ) : null}
       </div>

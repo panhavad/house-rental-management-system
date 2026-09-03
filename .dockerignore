@@ -12,6 +12,7 @@ prisma/dev.db-journal
 prisma/*.db
 prisma/*.db-journal
 public/uploads
+data
 
 # Env files — real secrets are passed in at runtime via docker-compose/--env-file,
 # never baked into the image. (Templates like .env.docker.example are harmless but

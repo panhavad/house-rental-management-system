@@ -3,6 +3,7 @@
 import { useLinkStatus } from "next/link";
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 
 /**
  * Renders inside a `<Link>` (per Next.js's `useLinkStatus` contract) and
@@ -11,11 +12,24 @@ import { Loader2 } from "lucide-react";
  * use even outside a `<Link>` (returns a non-pending default, same as
  * `useFormStatus` does with no parent form).
  */
-export function LinkStatusContent({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
+export function LinkStatusContent({
+  icon,
+  children,
+  spinnerClassName = "h-4 w-4",
+}: {
+  icon?: ReactNode;
+  children: ReactNode;
+  /** Sizing override so small links can render a proportionally small spinner. */
+  spinnerClassName?: string;
+}) {
   const { pending } = useLinkStatus();
   return (
     <>
-      {pending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : icon}
+      {pending ? (
+        <Loader2 className={twMerge("shrink-0 animate-spin", spinnerClassName)} aria-hidden="true" />
+      ) : (
+        icon
+      )}
       {children}
     </>
   );

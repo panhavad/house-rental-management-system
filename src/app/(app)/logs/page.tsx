@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Field";
-import { FilterButton } from "@/components/ui/Button";
+import { FilterBar, FilterSelect, ApartmentRoomFilter } from "@/components/ui/FilterBar";
 import { Pagination } from "@/components/ui/Pagination";
 import { resolvePage, resolvePageSize, paginationSkipTake, PAGE_SIZE_COOKIE } from "@/lib/pagination";
 
@@ -13,10 +12,22 @@ const ENTITY_TYPES = ["APARTMENT", "ROOM", "CONTRACT", "UTILITY", "PAYMENT", "FA
 export default async function LogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ entityType?: string; roomId?: string; page?: string; pageSize?: string }>;
+  searchParams: Promise<{
+    entityType?: string;
+    apartmentId?: string;
+    roomId?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
 }) {
   const user = await requireWorkspaceUser();
-  const { entityType, roomId, page: pageParam, pageSize: pageSizeParam } = await searchParams;
+  const {
+    entityType,
+    apartmentId,
+    roomId,
+    page: pageParam,
+    pageSize: pageSizeParam,
+  } = await searchParams;
   const cookieStore = await cookies();
 
   const page = resolvePage(pageParam);
@@ -25,9 +36,11 @@ export default async function LogsPage({
     workspaceId: user.workspaceId,
     entityType: entityType || undefined,
     roomId: roomId || undefined,
+    // A room filter is already more specific than its apartment.
+    ...(!roomId && apartmentId ? { room: { apartmentId } } : {}),
   };
 
-  const [logs, totalCount, rooms] = await Promise.all([
+  const [logs, totalCount, apartments] = await Promise.all([
     prisma.activityLog.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -35,10 +48,10 @@ export default async function LogsPage({
       ...paginationSkipTake(page, pageSize),
     }),
     prisma.activityLog.count({ where }),
-    prisma.room.findMany({
-      where: { apartment: { workspaceId: user.workspaceId } },
+    prisma.apartment.findMany({
+      where: { workspaceId: user.workspaceId },
       orderBy: { name: "asc" },
-      include: { apartment: true },
+      select: { id: true, name: true, rooms: { orderBy: { name: "asc" }, select: { id: true, name: true } } },
     }),
   ]);
 
@@ -50,25 +63,25 @@ export default async function LogsPage({
         breadcrumbs={[{ label: "Activity log" }]}
       />
 
-      <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
-        <Select name="entityType" defaultValue={entityType ?? ""} className="w-48">
+      <FilterBar
+        values={{ entityType, apartmentId, roomId, pageSize: pageSizeParam }}
+        clearableKeys={["entityType", "apartmentId", "roomId"]}
+      >
+        <FilterSelect name="entityType" label="Filter by entity type" value={entityType ?? ""} className="w-48">
           <option value="">All entity types</option>
           {ENTITY_TYPES.map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
           ))}
-        </Select>
-        <Select name="roomId" defaultValue={roomId ?? ""} className="w-56">
-          <option value="">All rooms</option>
-          {rooms.map((room) => (
-            <option key={room.id} value={room.id}>
-              {room.apartment.name} · {room.name}
-            </option>
-          ))}
-        </Select>
-        <FilterButton />
-      </form>
+        </FilterSelect>
+        <ApartmentRoomFilter
+          apartments={apartments}
+          apartmentId={apartmentId ?? ""}
+          roomId={roomId ?? ""}
+          className="w-64"
+        />
+      </FilterBar>
 
       <Card>
         {logs.length === 0 ? (
@@ -92,7 +105,12 @@ export default async function LogsPage({
             ))}
           </ul>
         )}
-        <Pagination page={page} pageSize={pageSize} totalCount={totalCount} searchParams={{ entityType, roomId }} />
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          searchParams={{ entityType, apartmentId, roomId }}
+        />
       </Card>
     </div>
   );

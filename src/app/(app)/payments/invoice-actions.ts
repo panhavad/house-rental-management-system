@@ -6,8 +6,7 @@ import { getAppSettings } from "@/lib/currency";
 import { getWorkspacePaymentMethods } from "@/lib/payment-methods";
 import { generateInvoicePdf, type InvoicePaymentMethod } from "@/lib/invoice-pdf";
 import { firstDayOfMonth, lastDayOfMonth } from "@/lib/dates";
-import { readFile } from "fs/promises";
-import path from "path";
+import { readUploadBytes } from "@/lib/uploads";
 
 /** Plain, JSON-serializable view of an invoice — used both to render the on-screen "share as image" preview and as the source for the PDF. */
 export type InvoiceViewData = {
@@ -80,7 +79,7 @@ export async function prepareInvoice(paymentId: string): Promise<{ data: Invoice
         let qrImageBytes: Uint8Array | null = null;
         if (method.qrImageUrl) {
           try {
-            qrImageBytes = await readFile(path.join(process.cwd(), "public", method.qrImageUrl));
+            qrImageBytes = await readUploadBytes(method.qrImageUrl);
           } catch {
             qrImageBytes = null; // File missing on disk — skip embedding rather than fail the whole invoice.
           }

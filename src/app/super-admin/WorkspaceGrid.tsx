@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Building2, Users, CheckSquare, Square, X, Download, Copy, Trash2, Loader2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
+import { CardLink } from "@/components/ui/StatusLink";
 import { Badge } from "@/components/ui/Badge";
 import { deleteWorkspacesAction, duplicateWorkspacesAction } from "@/app/super-admin/backup-actions";
 
@@ -215,9 +215,9 @@ export function WorkspaceGrid({ workspaces }: { workspaces: WorkspaceSummary[] }
                 {card}
               </button>
             ) : (
-              <Link key={workspace.id} href={`/super-admin/workspaces/${workspace.id}`}>
+              <CardLink key={workspace.id} href={`/super-admin/workspaces/${workspace.id}`}>
                 {card}
-              </Link>
+              </CardLink>
             );
           })}
         </div>

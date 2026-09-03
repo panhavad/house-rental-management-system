@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { NAV_ITEMS, ADMIN_ONLY_NAV_ITEMS, MY_ACCESS_NAV_ITEM, isNavItemActive } from "@/lib/nav-items";
 
 /**
@@ -26,17 +26,18 @@ export function MobileIconNav({ role }: { role: Role }) {
         const isActive = isNavItemActive(item, pathname);
         const Icon = item.icon;
         return (
-          <Link
+          <StatusLink
             key={item.href}
             href={item.href}
             title={item.label}
             className={`flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1.5 transition-colors ${
               isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
             }`}
+            icon={<Icon className="h-5 w-5 shrink-0" aria-hidden="true" />}
+            spinnerClassName="h-5 w-5"
           >
-            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
             <span className="max-w-14 truncate text-[10px] font-medium leading-none">{item.label}</span>
-          </Link>
+          </StatusLink>
         );
       })}
     </nav>

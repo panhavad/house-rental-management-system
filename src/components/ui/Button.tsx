@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ButtonHTMLAttributes, ReactNode } from "react";
-import { LucideIcon, Filter } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { LinkStatusContent } from "@/components/ui/LinkStatusContent";
@@ -21,20 +21,29 @@ const BASE_CLASSES =
  * Renders its icon here (while still a Server Component), then hands the
  * already-rendered icon element off to `SubmitStatusButton` — a small Client
  * Component that additionally swaps it for a spinner while the enclosing
- * form is submitting. This keeps `Button` itself usable directly from Server
- * Components (as it always has been) with no change to its public API.
+ * form is submitting (or while `loading` is set, for client-side async work).
+ * This keeps `Button` itself usable directly from Server Components (as it
+ * always has been) with no change to its public API.
  */
 export function Button({
   variant = "primary",
   className,
   icon: Icon,
+  loading,
   children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; icon?: LucideIcon; children: ReactNode }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  icon?: LucideIcon;
+  /** Shows the pending spinner for work outside a form submission. */
+  loading?: boolean;
+  children: ReactNode;
+}) {
   return (
     <SubmitStatusButton
       className={twMerge(BASE_CLASSES, VARIANT_CLASSES[variant], className)}
       icon={Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+      loading={loading}
       {...props}
     >
       {children}
@@ -61,17 +70,5 @@ export function LinkButton({
         {children}
       </LinkStatusContent>
     </Link>
-  );
-}
-
-export function FilterButton() {
-  return (
-    <button
-      type="submit"
-      className="inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-    >
-      <Filter className="h-4 w-4 shrink-0" aria-hidden="true" />
-      Filter
-    </button>
   );
 }

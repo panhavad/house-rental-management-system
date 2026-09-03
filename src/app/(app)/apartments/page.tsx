@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
-import Link from "next/link";
+import { CardLink } from "@/components/ui/StatusLink";
 
 export default async function ApartmentsPage() {
   const user = await requireWorkspaceUser();
@@ -42,7 +42,7 @@ export default async function ApartmentsPage() {
           {apartments.map((apartment) => {
             const occupied = apartment.rooms.filter((r) => r.status === "OCCUPIED").length;
             return (
-              <Link key={apartment.id} href={`/apartments/${apartment.id}`}>
+              <CardLink key={apartment.id} href={`/apartments/${apartment.id}`} className="h-full">
                 <Card className="h-full transition-shadow hover:shadow-md">
                   <CardBody>
                     <h3 className="font-semibold text-slate-900">{apartment.name}</h3>
@@ -54,7 +54,7 @@ export default async function ApartmentsPage() {
                     </p>
                   </CardBody>
                 </Card>
-              </Link>
+              </CardLink>
             );
           })}
         </div>

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac";
@@ -8,8 +7,9 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { RoomStatusBadge, ContractStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
-import { deleteRoom, duplicateRoom, startContract, previewContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
-import { StartContractForm, TerminateContractForm, UploadDocumentForm } from "@/app/(app)/rooms/[id]/ContractForms";
+import { StatusLink } from "@/components/ui/StatusLink";
+import { deleteRoom, duplicateRoom, startContract, previewContract, reviewContract, endContract, terminateContract, addContractDocuments, deleteContractDocument } from "@/app/(app)/rooms/actions";
+import { StartContractForm, TerminateContractForm, ReviewContractButton, UploadDocumentForm } from "@/app/(app)/rooms/[id]/ContractForms";
 import { Pencil, CheckCircle2, Users, QrCode, Copy } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 import { ContractDocumentGrid } from "@/components/ui/ContractDocumentPreview";
@@ -176,8 +176,17 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                         icon={<CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />}
                       />
                       <TerminateContractForm action={terminateContract.bind(null, room.id, activeContract.id)} />
+                      <ReviewContractButton
+                        action={reviewContract.bind(null, room.id, activeContract.id)}
+                        tenantName={activeContract.tenantName}
+                      />
                     </div>
-                  ) : null}
+                  ) : (
+                    <ReviewContractButton
+                      action={reviewContract.bind(null, room.id, activeContract.id)}
+                      tenantName={activeContract.tenantName}
+                    />
+                  )}
 
                   <div className="mt-4">
                     <p className="mb-2 text-sm font-medium text-slate-700">Contract documents</p>
@@ -252,9 +261,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
             <CardBody>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-semibold text-slate-900">Recent utility readings</h2>
-                <Link href="/utilities" className="text-sm text-slate-500 hover:underline">
+                <StatusLink
+                  href="/utilities"
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:underline"
+                  spinnerClassName="h-3.5 w-3.5"
+                >
                   View all
-                </Link>
+                </StatusLink>
               </div>
               {room.utilityReadings.length === 0 ? (
                 <p className="text-sm text-slate-500">No utility readings yet.</p>
@@ -278,9 +291,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
             <CardBody>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-semibold text-slate-900">Recent payments</h2>
-                <Link href="/payments" className="text-sm text-slate-500 hover:underline">
+                <StatusLink
+                  href="/payments"
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:underline"
+                  spinnerClassName="h-3.5 w-3.5"
+                >
                   View all
-                </Link>
+                </StatusLink>
               </div>
               {room.payments.length === 0 ? (
                 <p className="text-sm text-slate-500">No payments yet.</p>

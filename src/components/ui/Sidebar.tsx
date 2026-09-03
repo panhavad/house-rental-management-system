@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
+import { StatusLink } from "@/components/ui/StatusLink";
 import { NAV_ITEMS, ADMIN_ONLY_NAV_ITEMS, MY_ACCESS_NAV_ITEM, isNavItemActive } from "@/lib/nav-items";
 
 /**
@@ -26,16 +26,16 @@ export function Sidebar({ role }: { role: Role }) {
         const isActive = isNavItemActive(item, pathname);
         const Icon = item.icon;
         return (
-          <Link
+          <StatusLink
             key={item.href}
             href={item.href}
             className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
             }`}
+            icon={<Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
           >
-            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             {item.label}
-          </Link>
+          </StatusLink>
         );
       })}
     </nav>

@@ -9,15 +9,27 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       # The SQLite file lives on the db-data volume, not inside the image.
-      DATABASE_URL: "file:/app/data/prod.db"
+      # SQLite permits only one writer. Keep Prisma on one connection so bursts
+      # of server-rendered requests queue instead of competing until P1008.
+      DATABASE_URL: "file:/app/data/prod.db?connection_limit=1"
       AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET in .env.docker — see .env.docker.example}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
       ALLOW_SELF_SIGNUP: "${ALLOW_SELF_SIGNUP:-false}"
+      # Uploaded files are stored here (a persistent volume) and served by the
+      # app's /uploads route — deliberately NOT under public/, which Next.js only
+      # scans once at boot, so new uploads 404 until the container is restarted.
+      UPLOADS_DIR: "/app/data/uploads"
+      # Extra hostnames this deployment is served on, beyond NEXTAUTH_URL. Needed
+      # when a reverse proxy (Cloudflare Tunnel, nginx, ...) rewrites the Host
+      # header, otherwise Next.js rejects Server Actions as cross-origin.
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
     volumes:
       # Persist the SQLite database across container restarts/rebuilds.
       - db-data:/app/data
-      # Persist uploaded contract documents (PDF/image) across restarts/rebuilds.
-      - uploads-data:/app/public/uploads
+      # Persist uploaded contract documents / payment QR images across restarts and
+      # rebuilds. Previously mounted at /app/public/uploads; the volume contents are
+      # unchanged, so existing files keep resolving from their stored /uploads/... URLs.
+      - uploads-data:/app/data/uploads
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/login"]
       interval: 30s

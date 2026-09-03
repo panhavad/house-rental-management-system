@@ -4,12 +4,12 @@ import { Sidebar } from "@/components/ui/Sidebar";
 import { MobileIconNav } from "@/components/ui/MobileIconNav";
 import { WorkspaceSwitcher } from "@/components/ui/WorkspaceSwitcher";
 import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { logoutAction } from "@/lib/actions/logout";
 import { exitImpersonationAction } from "@/lib/actions/impersonation";
-import { LogOut, Bell, ShieldAlert, DoorOpen } from "lucide-react";
+import { LogOut, ShieldAlert, DoorOpen } from "lucide-react";
 import { APP_VERSION, APP_RELEASE_DATE } from "@/lib/app-info";
 import { getAttentionSummary } from "@/lib/attention";
-import Link from "next/link";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireWorkspaceUser();
@@ -48,18 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               }))}
             />
           ) : null}
-          <Link
-            href="/#needs-attention"
-            title={attention.totalCount > 0 ? `${attention.totalCount} item(s) need attention` : "No pending reminders"}
-            className="relative rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
-          >
-            <Bell className="h-5 w-5 shrink-0" aria-hidden="true" />
-            {attention.totalCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white">
-                {attention.totalCount > 9 ? "9+" : attention.totalCount}
-              </span>
-            ) : null}
-          </Link>
+          <NotificationBell attention={attention} />
           <div className="hidden text-sm md:block">
             <span className="font-medium text-slate-900">{user.name}</span>
             <span className="ml-2 text-slate-400">{ROLE_LABELS[user.role]}</span>

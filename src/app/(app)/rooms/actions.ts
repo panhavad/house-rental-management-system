@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/auth-guard";
+import { requirePermission, requireWorkspaceUser } from "@/lib/auth-guard";
 import { PERMISSIONS } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { saveContractDocuments, saveGeneratedContractPdf, deleteContractDocumentFiles } from "@/lib/contract-document";
@@ -247,6 +247,8 @@ async function buildContractPdfData(opts: {
   workspaceName: string;
   preparedByName: string;
   isPreview: boolean;
+  /** Defaults to now; pass the contract's creation date when re-rendering an already-started contract. */
+  generatedAt?: Date;
 }): Promise<ContractPdfData> {
   const settings = await getAppSettings(opts.workspaceId);
   return {
@@ -257,7 +259,7 @@ async function buildContractPdfData(opts: {
     facilityNames: opts.room.facilities.map((f) => f.facility.name),
     settings,
     preparedByName: opts.preparedByName,
-    generatedAt: new Date(),
+    generatedAt: opts.generatedAt ?? new Date(),
     isPreview: opts.isPreview,
   };
 }
@@ -296,6 +298,53 @@ export async function previewContract(roomId: string, formData: FormData): Promi
   } catch (error) {
     console.error("Failed to generate contract preview PDF:", error);
     return { error: "Couldn't generate the preview PDF. Please try again." };
+  }
+}
+
+/**
+ * Re-renders the agreement PDF for a contract that has already been started, so
+ * it can be reviewed on screen (the same document that was generated and
+ * attached when the contract began). Purely read-only — nothing is written.
+ */
+export async function reviewContract(
+  roomId: string,
+  contractId: string
+): Promise<{ pdfBase64: string } | { error: string }> {
+  const user = await requireWorkspaceUser();
+  const room = await findContractRoom(roomId, user.workspaceId);
+  const contract = await prisma.contract.findFirst({ where: { id: contractId, roomId } });
+  if (!contract) return { error: "This contract could not be found." };
+
+  try {
+    // Reproduce the document as it was issued: same template, same preparer and
+    // the date the contract was actually created.
+    const startedLog = await prisma.activityLog.findFirst({
+      where: {
+        workspaceId: user.workspaceId,
+        entityType: "CONTRACT",
+        entityId: contract.id,
+        action: "CONTRACT_STARTED",
+      },
+      orderBy: { createdAt: "asc" },
+      include: { performedBy: true },
+    });
+
+    const templateContent = await getWorkspaceContractTemplate(user.workspaceId);
+    const data = await buildContractPdfData({
+      workspaceId: user.workspaceId,
+      room,
+      fields: contract,
+      contractId: contract.id,
+      workspaceName: user.workspaceName ?? "RentalHRM",
+      preparedByName: startedLog?.performedBy?.name ?? user.name ?? "Property Manager",
+      isPreview: false,
+      generatedAt: contract.createdAt,
+    });
+    const pdfBytes = await generateContractAgreementPdf(data, templateContent);
+    return { pdfBase64: Buffer.from(pdfBytes).toString("base64") };
+  } catch (error) {
+    console.error("Failed to generate contract review PDF:", error);
+    return { error: "Couldn't load the contract agreement. Please try again." };
   }
 }
 

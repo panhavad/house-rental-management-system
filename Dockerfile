@@ -5,7 +5,6 @@
 # - Multi-stage build: install deps once, build with dev deps, run with prod-only deps
 # - The SQLite database file and uploaded contract documents are expected to live on
 #   mounted volumes (see docker-compose.yml) so they survive image rebuilds/restarts.
-
 ARG NODE_VERSION=20-alpine
 
 ########## Base: OS packages needed by Prisma's query engine and sharp ##########
@@ -64,7 +63,7 @@ COPY docker-entrypoint.sh ./docker-entrypoint.sh
 # executable; create the volume mount points with correct ownership up front.
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh \
     && chmod +x ./docker-entrypoint.sh \
-    && mkdir -p /app/data /app/public/uploads/contracts \
+    && mkdir -p /app/data/uploads \
     && chown -R nextjs:nodejs /app
 
 USER nextjs

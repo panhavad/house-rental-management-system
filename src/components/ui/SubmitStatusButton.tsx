@@ -21,10 +21,15 @@ export function SubmitStatusButton({
   children,
   className,
   disabled,
+  loading,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { icon?: ReactNode }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  icon?: ReactNode;
+  /** Forces the spinner for work that isn't a form submission (e.g. a `useTransition` action). */
+  loading?: boolean;
+}) {
   const { pending } = useFormStatus();
-  const showSpinner = props.type === "submit" && pending;
+  const showSpinner = loading || (props.type === "submit" && pending);
 
   return (
     <button className={className} disabled={disabled || showSpinner} {...props}>

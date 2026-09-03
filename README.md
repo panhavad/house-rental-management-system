@@ -55,13 +55,15 @@ history — with role-based access control.
   Cambodian Riel (KHR); all amounts are stored in USD and converted for display using a
   configurable exchange rate.
 - **Payments** — rent + utility cost are combined automatically into one payment per room/month.
-  A dedicated Payments page lets you filter, generate missing invoices, and mark payments as
-  paid/overdue.
+  A dedicated Payments page lets you filter by status, month, and either a whole apartment or a
+  single room (filters apply instantly as you change them), generate missing invoices, and mark
+  payments as paid/overdue.
 - **Dashboard reminders** — a "Needs attention" section (and a header notification badge) surfaces
   overdue payments, rooms missing this month's utility reading, and contracts expiring within 30
   days, each linking straight to the fix.
 - **Activity log** — every create/update/delete, contract change, utility entry and payment status
-  change is recorded with who did it and when, filterable by entity type or room.
+  change is recorded with who did it and when, filterable by entity type and by either a whole
+  apartment or a single room.
 - **Access control** — a 5-tier role hierarchy (`Super Admin → Admin → Manager → Staff →
   Viewer`), with a fully **customizable permission matrix** per workspace: an administrator can
   check/uncheck exactly what Manager/Staff/Viewer can do from **Settings → Roles & permissions**
@@ -405,7 +407,12 @@ Two named volumes are created automatically:
 | Volume         | Mounted at              | Contains                                  |
 | -------------- | ------------------------ | ------------------------------------------ |
 | `db-data`      | `/app/data`               | the SQLite database file (`prod.db`)       |
-| `uploads-data` | `/app/public/uploads`     | uploaded contract documents (PDF/images)   |
+| `uploads-data` | `/app/data/uploads`       | uploaded contract documents and payment QR images |
+
+> **Upgrading from an older deployment:** `uploads-data` used to be mounted at
+> `/app/public/uploads`. The volume and its contents are unchanged — only the mount point
+> moved — so existing files keep working after `docker compose up -d --build`, with no
+> migration step. See "Why uploads aren't served from `public/`" below for the reason.
 
 Back these up before upgrading in production:
 
@@ -415,6 +422,52 @@ docker run --rm -v hrm_db-data:/data -v ${PWD}:/backup alpine tar czf /backup/db
 
 (adjust the `hrm_db-data` volume name prefix if your project folder isn't named `hrm`;
 run `docker volume ls` to see the actual name).
+
+### Why uploads aren't served from `public/`
+
+Next.js scans the `public/` directory **once, while the server boots**, and only serves the
+files it found then. Anything written there afterwards is invisible to the router and
+returns a 404 page until the process restarts — so a contract PDF uploaded through the app
+would only become downloadable after a `docker compose down && up`.
+
+Uploads are therefore written to `UPLOADS_DIR` (default `/app/data/uploads`, a persistent
+volume) and served by the `/uploads/[...path]` route handler, which reads from disk on
+every request. Their public URLs are unchanged (`/uploads/contracts/...`), so URLs already
+stored in the database keep resolving, and files still sitting in the old
+`public/uploads` folder are read as a fallback.
+
+Serving them through the app also means uploads are only readable by signed-in users, are
+sent with `Cache-Control: private` (so a shared CDN cache never holds another tenant's
+contract), and support HTTP range requests for in-browser PDF viewers.
+
+### Running behind a reverse proxy or tunnel
+
+When the app is published through Cloudflare Tunnel, nginx, Traefik, a NAS reverse proxy,
+etc., set `NEXTAUTH_URL` to the **public** URL users actually type — not
+`http://localhost:3000`:
+
+```ini
+NEXTAUTH_URL=https://hrm.example.com
+```
+
+Next.js rejects a Server Action (any form submit, including file uploads) when the
+browser's `Origin` header doesn't match the `Host` the container sees. Proxies frequently
+rewrite `Host`, which shows up in the container logs as:
+
+```
+`x-forwarded-host` header with value `...` does not match `origin` header with value `...`
+from a forwarded Server Actions request. Aborting the action.
+```
+
+`NEXTAUTH_URL` is trusted automatically. If the app answers on more than one hostname, list
+the extras in `ALLOWED_ORIGINS` (comma-separated, no rebuild needed — it's read at startup):
+
+```ini
+ALLOWED_ORIGINS=hrm.example.com,www.hrm.example.com
+```
+
+Also make sure the proxy allows request bodies of at least 10MB, which is the configured
+upload limit (`serverActions.bodySizeLimit` in `next.config.js`).
 
 ### Useful Docker commands
 

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspaceUser } from "@/lib/auth-guard";
 import { hasPermission, PERMISSIONS, getRolePermissionMatrix } from "@/lib/rbac";
@@ -9,6 +8,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { SubmitStatusButton } from "@/components/ui/SubmitStatusButton";
 import { RoomStatusBadge } from "@/components/ui/Badge";
 import { DeleteButton } from "@/components/ui/DeleteButton";
+import { CardLink } from "@/components/ui/StatusLink";
 import { deleteApartment } from "@/app/(app)/apartments/actions";
 import { duplicateRoom } from "@/app/(app)/rooms/actions";
 import { DoorOpen, Pencil, MapPin, Users, Copy } from "lucide-react";
@@ -96,7 +96,7 @@ export default async function ApartmentDetailPage({ params }: { params: Promise<
           {apartment.rooms.map((room) => (
             <Card key={room.id} className="h-full transition-shadow hover:shadow-md">
               <CardBody>
-                <Link href={`/rooms/${room.id}`} className="block">
+                <CardLink href={`/rooms/${room.id}`}>
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-slate-900 hover:underline">{room.name}</h3>
                     <RoomStatusBadge status={room.status} />
@@ -105,7 +105,7 @@ export default async function ApartmentDetailPage({ params }: { params: Promise<
                   <p className="mt-2 text-sm font-medium text-slate-700">
                     {formatMoney(room.rentalFee, settings)}/mo
                   </p>
-                </Link>
+                </CardLink>
                 {canWriteRooms ? (
                   <form action={duplicateRoom.bind(null, room.id)} className="mt-3">
                     <SubmitStatusButton
