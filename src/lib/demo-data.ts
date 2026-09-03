@@ -472,6 +472,12 @@ export async function loadDemoData() {
       let electricityPrevious = roomSpec.electricityMeterStart;
 
       for (const contractSpec of roomSpec.contracts) {
+        // Each contract's move-in meter values pick up wherever the previous
+        // tenancy's readings left off (or the room's original install values,
+        // for the very first contract) — the same continuity real readings get.
+        const contractWaterMeterStart = waterPrevious;
+        const contractElectricityMeterStart = electricityPrevious;
+
         const contract = await prisma.contract.create({
           data: {
             roomId: room.id,
@@ -482,6 +488,8 @@ export async function loadDemoData() {
             occupants: contractSpec.occupants,
             rentalFee: contractSpec.rentalFee,
             deposit: contractSpec.deposit,
+            waterMeterStart: contractWaterMeterStart,
+            electricityMeterStart: contractElectricityMeterStart,
             startDate: contractSpec.startDate,
             endDate: contractSpec.endDate,
             status: contractSpec.status,

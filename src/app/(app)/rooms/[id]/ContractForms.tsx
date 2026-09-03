@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
-import { Ban, ShieldAlert, X, FilePlus2, Upload, Eye, PencilLine, AlertTriangle } from "lucide-react";
+import { Ban, ShieldAlert, X, FilePlus2, Upload, Eye, PencilLine, AlertTriangle, User, Phone, Mail, IdCard, Users, DollarSign, Wallet, Droplets, Zap, CalendarDays, CalendarClock, Paperclip, StickyNote, MessageSquareWarning, KeyRound } from "lucide-react";
 
 export function UploadDocumentForm({ action, label = "Add documents" }: { action: (formData: FormData) => void; label?: string }) {
   const [open, setOpen] = useState(false);
@@ -24,7 +24,7 @@ export function UploadDocumentForm({ action, label = "Add documents" }: { action
   return (
     <form action={action} className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-end">
       <div className="flex-1">
-        <Field label="PDF, JPG, PNG or WEBP (you can select several)" htmlFor="documents">
+        <Field label="PDF, JPG, PNG or WEBP (you can select several)" htmlFor="documents" icon={Paperclip}>
           <input
             id="documents"
             name="documents"
@@ -73,7 +73,7 @@ export function TerminateContractForm({ action }: { action: (formData: FormData)
         }
       }}
     >
-      <Field label="Termination reason" htmlFor="reason">
+      <Field label="Termination reason" htmlFor="reason" icon={MessageSquareWarning}>
         <Textarea id="reason" name="reason" rows={2} required />
       </Field>
       <div className="flex gap-2">
@@ -90,12 +90,30 @@ export function TerminateContractForm({ action }: { action: (formData: FormData)
 
 type PreviewResult = { pdfBase64: string } | { error: string };
 
+/** Small labeled divider used to visually group related fields within a longer form. */
+function FormSectionHeading({ icon: Icon, label }: { icon: typeof User; label: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+      <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+      <h3 className="text-sm font-semibold text-slate-900">{label}</h3>
+    </div>
+  );
+}
+
 export function StartContractForm({
   action,
   previewAction,
+  defaultWaterMeterStart = 0,
+  defaultElectricityMeterStart = 0,
+  hasMeterHistory = false,
 }: {
   action: (formData: FormData) => void;
   previewAction: (formData: FormData) => Promise<PreviewResult>;
+  /** Pre-filled initial meter values — the room's latest recorded reading, if any. */
+  defaultWaterMeterStart?: number;
+  defaultElectricityMeterStart?: number;
+  /** Whether the defaults above came from an actual past reading (shows a hint) or are just a blank starting point. */
+  hasMeterHistory?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -137,51 +155,94 @@ export function StartContractForm({
   }
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4">
-      <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Tenant name" htmlFor="tenantName" required>
-          <Input id="tenantName" name="tenantName" required />
-        </Field>
-        <Field label="Tenant phone" htmlFor="tenantPhone">
-          <Input id="tenantPhone" name="tenantPhone" />
-        </Field>
-        <Field label="Tenant email" htmlFor="tenantEmail">
-          <Input id="tenantEmail" name="tenantEmail" type="email" />
-        </Field>
-        <Field label="Tenant ID number" htmlFor="tenantIdNumber">
-          <Input id="tenantIdNumber" name="tenantIdNumber" />
-        </Field>
-        <Field label="Number of people staying" htmlFor="occupants" required>
-          <Input id="occupants" name="occupants" type="number" min="1" step="1" defaultValue={1} required />
-        </Field>
-        <Field label="Rental fee (USD)" htmlFor="rentalFee" required>
-          <Input id="rentalFee" name="rentalFee" type="number" step="0.01" required />
-        </Field>
-        <Field label="Deposit (USD)" htmlFor="deposit">
-          <Input id="deposit" name="deposit" type="number" step="0.01" defaultValue={0} />
-        </Field>
-        <Field label="Start date" htmlFor="startDate" required>
-          <Input id="startDate" name="startDate" type="date" required />
-        </Field>
-        <Field label="End date" htmlFor="endDate" required>
-          <Input id="endDate" name="endDate" type="date" required />
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Contract documents (PDF, JPG, PNG or WEBP — optional, multiple allowed)" htmlFor="documents">
-            <input
-              id="documents"
-              name="documents"
-              type="file"
-              multiple
-              accept="application/pdf,image/jpeg,image/png,image/webp"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
-            />
+    <form ref={formRef} action={action} className="flex flex-col gap-6">
+      <div>
+        <FormSectionHeading icon={User} label="Tenant information" />
+        <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Tenant name" htmlFor="tenantName" icon={User} required>
+            <Input id="tenantName" name="tenantName" required />
+          </Field>
+          <Field label="Tenant phone" htmlFor="tenantPhone" icon={Phone}>
+            <Input id="tenantPhone" name="tenantPhone" />
+          </Field>
+          <Field label="Tenant email" htmlFor="tenantEmail" icon={Mail}>
+            <Input id="tenantEmail" name="tenantEmail" type="email" />
+          </Field>
+          <Field label="Tenant ID number" htmlFor="tenantIdNumber" icon={IdCard}>
+            <Input id="tenantIdNumber" name="tenantIdNumber" />
+          </Field>
+          <Field label="Number of people staying" htmlFor="occupants" icon={Users} required>
+            <Input id="occupants" name="occupants" type="number" min="1" step="1" defaultValue={1} required />
           </Field>
         </div>
-        <div className="sm:col-span-2">
-          <Field label="Notes" htmlFor="notes">
-            <Textarea id="notes" name="notes" rows={2} />
+      </div>
+
+      <div>
+        <FormSectionHeading icon={KeyRound} label="Lease & property details" />
+        <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Rental fee (USD)" htmlFor="rentalFee" icon={DollarSign} required>
+            <Input id="rentalFee" name="rentalFee" type="number" step="0.01" required />
           </Field>
+          <Field label="Deposit (USD)" htmlFor="deposit" icon={Wallet}>
+            <Input id="deposit" name="deposit" type="number" step="0.01" defaultValue={0} />
+          </Field>
+          <Field label="Start date" htmlFor="startDate" icon={CalendarDays} required>
+            <Input id="startDate" name="startDate" type="date" required />
+          </Field>
+          <Field label="End date" htmlFor="endDate" icon={CalendarClock} required>
+            <Input id="endDate" name="endDate" type="date" required />
+          </Field>
+          <Field
+            label="Water meter reading (initial)"
+            htmlFor="waterMeterStart"
+            icon={Droplets}
+            required
+            hint={hasMeterHistory ? "Defaults to the room's latest recorded reading." : undefined}
+          >
+            <Input
+              id="waterMeterStart"
+              name="waterMeterStart"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={defaultWaterMeterStart}
+              required
+            />
+          </Field>
+          <Field
+            label="Electricity meter reading (initial)"
+            htmlFor="electricityMeterStart"
+            icon={Zap}
+            required
+            hint={hasMeterHistory ? "Defaults to the room's latest recorded reading." : undefined}
+          >
+            <Input
+              id="electricityMeterStart"
+              name="electricityMeterStart"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={defaultElectricityMeterStart}
+              required
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Contract documents (PDF, JPG, PNG or WEBP — optional, multiple allowed)" htmlFor="documents" icon={Paperclip}>
+              <input
+                id="documents"
+                name="documents"
+                type="file"
+                multiple
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Notes" htmlFor="notes" icon={StickyNote}>
+              <Textarea id="notes" name="notes" rows={2} />
+            </Field>
+          </div>
         </div>
       </div>
 

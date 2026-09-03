@@ -14,7 +14,7 @@ import {
   setupSaveRates,
   setupFinish,
 } from "@/app/(app)/setup/actions";
-import { Check, Coins, Building2, DoorOpen, Droplets, PartyPopper, ArrowRight, SkipForward } from "lucide-react";
+import { Check, Coins, Building2, DoorOpen, Droplets, PartyPopper, ArrowRight, SkipForward, MapPin, Tag, DollarSign, Zap, ArrowRightLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const STEP_LABELS = ["Currency", "First apartment", "First room", "Utility rates", "Done"];
@@ -117,13 +117,13 @@ async function CurrencyStep({ workspaceId }: { workspaceId: string }) {
         description="All amounts are entered and stored in USD; this only changes how they're displayed."
       />
       <form action={setupSaveCurrency} className="flex flex-col gap-4">
-        <Field label="Display currency" htmlFor="currency" required>
+        <Field label="Display currency" htmlFor="currency" icon={Coins} required>
           <Select id="currency" name="currency" defaultValue={settings.currency} required>
             <option value="USD">{CURRENCY_LABELS.USD}</option>
             <option value="KHR">{CURRENCY_LABELS.KHR}</option>
           </Select>
         </Field>
-        <Field label="Exchange rate (KHR per 1 USD)" htmlFor="exchangeRate" required>
+        <Field label="Exchange rate (KHR per 1 USD)" htmlFor="exchangeRate" icon={ArrowRightLeft} required>
           <Input
             id="exchangeRate"
             name="exchangeRate"
@@ -165,10 +165,10 @@ async function ApartmentStep({ workspaceId }: { workspaceId: string }) {
         description="An apartment is a building or property that contains rooms. You can add more later."
       />
       <form action={setupCreateApartment} className="flex flex-col gap-4">
-        <Field label="Apartment name" htmlFor="name" required>
+        <Field label="Apartment name" htmlFor="name" icon={Building2} required>
           <Input id="name" name="name" required placeholder="Sunrise Residence" />
         </Field>
-        <Field label="Address" htmlFor="address">
+        <Field label="Address" htmlFor="address" icon={MapPin}>
           <Input id="address" name="address" placeholder="123 Main Street" />
         </Field>
         <div className="flex items-center gap-3">
@@ -207,13 +207,13 @@ function RoomStep({ apartmentId }: { apartmentId: string }) {
         description="Rooms are what you actually rent out — this is where tenants, contracts and payments live."
       />
       <form action={setupCreateRoom.bind(null, apartmentId)} className="flex flex-col gap-4">
-        <Field label="Room name" htmlFor="name" required>
+        <Field label="Room name" htmlFor="name" icon={DoorOpen} required>
           <Input id="name" name="name" required placeholder="Room 101" />
         </Field>
-        <Field label="Type" htmlFor="type" required>
+        <Field label="Type" htmlFor="type" icon={Tag} required>
           <Input id="type" name="type" required placeholder="Studio, 1 Bedroom, ..." />
         </Field>
-        <Field label="Rental fee (per month, USD)" htmlFor="rentalFee" required>
+        <Field label="Rental fee (per month, USD)" htmlFor="rentalFee" icon={DollarSign} required>
           <Input id="rentalFee" name="rentalFee" type="number" step="0.01" min="0" required />
         </Field>
         <div className="flex items-center gap-3">
@@ -242,10 +242,10 @@ function RatesStep() {
         description="Price per unit for water & electricity, used to calculate monthly utility costs. You can add more rates later."
       />
       <form action={setupSaveRates} className="flex flex-col gap-4">
-        <Field label="Water — price per unit (USD)" htmlFor="waterRate">
+        <Field label="Water — price per unit (USD)" htmlFor="waterRate" icon={Droplets}>
           <Input id="waterRate" name="waterRate" type="number" step="0.01" min="0" placeholder="0.80" />
         </Field>
-        <Field label="Electricity — price per unit (USD)" htmlFor="electricityRate">
+        <Field label="Electricity — price per unit (USD)" htmlFor="electricityRate" icon={Zap}>
           <Input id="electricityRate" name="electricityRate" type="number" step="0.01" min="0" placeholder="0.25" />
         </Field>
         <div className="flex items-center gap-3">

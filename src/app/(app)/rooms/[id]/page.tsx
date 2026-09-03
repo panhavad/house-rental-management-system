@@ -201,7 +201,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
               ) : canWriteContract ? (
-                <StartContractForm action={startContract.bind(null, room.id)} previewAction={previewContract.bind(null, room.id)} />
+                <StartContractForm
+                  action={startContract.bind(null, room.id)}
+                  previewAction={previewContract.bind(null, room.id)}
+                  defaultWaterMeterStart={room.utilityReadings[0]?.waterCurrent ?? 0}
+                  defaultElectricityMeterStart={room.utilityReadings[0]?.electricityCurrent ?? 0}
+                  hasMeterHistory={room.utilityReadings.length > 0}
+                />
               ) : (
                 <p className="text-sm text-slate-500">No active contract.</p>
               )}

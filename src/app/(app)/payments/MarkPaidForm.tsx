@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CircleDollarSign, Check, X } from "lucide-react";
+import { CircleDollarSign, Check, X, DollarSign, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 
@@ -24,12 +24,12 @@ export function MarkPaidForm({ action, defaultAmount }: { action: (formData: For
   return (
     <form action={action} className="flex items-end gap-2 rounded-md border border-green-200 bg-green-50 p-2">
       <div className="w-28">
-        <Field label="Amount (USD)" htmlFor="paidAmount">
+        <Field label="Amount (USD)" htmlFor="paidAmount" icon={DollarSign}>
           <Input id="paidAmount" name="paidAmount" type="number" step="0.01" defaultValue={defaultAmount} required />
         </Field>
       </div>
       <div className="w-28">
-        <Field label="Method" htmlFor="method">
+        <Field label="Method" htmlFor="method" icon={CreditCard}>
           <Input id="method" name="method" placeholder="Cash, bank..." />
         </Field>
       </div>

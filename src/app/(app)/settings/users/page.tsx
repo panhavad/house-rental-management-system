@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { createUser, updateUserRole, toggleUserActive } from "@/app/(app)/settings/users/actions";
 import { redirect } from "next/navigation";
-import { UserPlus, Save, UserCheck, UserX } from "lucide-react";
+import { UserPlus, Save, UserCheck, UserX, User, Mail, Lock, ShieldCheck } from "lucide-react";
 import { resolvePage, resolvePageSize, paginationSkipTake, PAGE_SIZE_COOKIE } from "@/lib/pagination";
 
 export default async function UsersPage({
@@ -47,16 +47,16 @@ export default async function UsersPage({
         <div className="p-5">
           <h2 className="mb-4 font-semibold text-slate-900">Add user</h2>
           <form action={createUser} className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Name" htmlFor="name" required>
+            <Field label="Name" htmlFor="name" icon={User} required>
               <Input id="name" name="name" required />
             </Field>
-            <Field label="Email" htmlFor="email" required>
+            <Field label="Email" htmlFor="email" icon={Mail} required>
               <Input id="email" name="email" type="email" required />
             </Field>
-            <Field label="Password" htmlFor="password" required>
+            <Field label="Password" htmlFor="password" icon={Lock} required>
               <Input id="password" name="password" type="password" minLength={8} required />
             </Field>
-            <Field label="Role" htmlFor="role" required>
+            <Field label="Role" htmlFor="role" icon={ShieldCheck} required>
               <Select id="role" name="role" required defaultValue="STAFF">
                 <option value="ADMIN">Administrator</option>
                 <option value="MANAGER">Manager</option>

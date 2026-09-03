@@ -7,7 +7,7 @@ import { Field, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { createFacility, deleteFacility } from "@/app/(app)/settings/facilities/actions";
-import { Plus } from "lucide-react";
+import { Plus, Wrench } from "lucide-react";
 
 export default async function FacilitiesPage() {
   const user = await requireWorkspaceUser();
@@ -29,7 +29,7 @@ export default async function FacilitiesPage() {
       {canWrite ? (
         <form action={createFacility} className="mb-6 flex max-w-md items-end gap-2">
           <div className="flex-1">
-            <Field label="New facility name" htmlFor="name">
+            <Field label="New facility name" htmlFor="name" icon={Wrench}>
               <Input id="name" name="name" required />
             </Field>
           </div>

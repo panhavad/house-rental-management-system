@@ -6,7 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { createUtilityRate } from "@/app/(app)/settings/rates/actions";
-import { Plus } from "lucide-react";
+import { Plus, Tag, DollarSign } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 
 export default async function RatesPage() {
@@ -51,7 +51,7 @@ export default async function RatesPage() {
       {canWrite ? (
         <form action={createUtilityRate} className="mb-6 flex max-w-md items-end gap-2">
           <div className="w-36 shrink-0">
-            <Field label="Type" htmlFor="type">
+            <Field label="Type" htmlFor="type" icon={Tag}>
               <Select id="type" name="type" required defaultValue="">
                 <option value="" disabled>
                   Select
@@ -62,7 +62,7 @@ export default async function RatesPage() {
             </Field>
           </div>
           <div className="flex-1">
-            <Field label="Price per unit (USD)" htmlFor="pricePerUnit">
+            <Field label="Price per unit (USD)" htmlFor="pricePerUnit" icon={DollarSign}>
               <Input id="pricePerUnit" name="pricePerUnit" type="number" step="0.01" required />
             </Field>
           </div>

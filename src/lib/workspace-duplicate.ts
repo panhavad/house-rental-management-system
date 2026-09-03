@@ -155,6 +155,8 @@ export async function duplicateWorkspace(
             occupants: contract.occupants,
             rentalFee: contract.rentalFee,
             deposit: contract.deposit,
+            waterMeterStart: contract.waterMeterStart,
+            electricityMeterStart: contract.electricityMeterStart,
             startDate: contract.startDate,
             endDate: contract.endDate,
             status: contract.status,

@@ -1,7 +1,7 @@
 import { Facility, Room } from "@prisma/client";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { Save, Plus, X } from "lucide-react";
+import { Save, Plus, X, DoorOpen, Tag, Ruler, Layers, DollarSign, Link as LinkIcon, Wrench, StickyNote } from "lucide-react";
 
 export function RoomForm({
   action,
@@ -22,21 +22,21 @@ export function RoomForm({
     <form action={action} className="flex max-w-xl flex-col gap-4">
       {apartmentId ? <input type="hidden" name="apartmentId" value={apartmentId} /> : null}
 
-      <Field label="Room name" htmlFor="name" required>
+      <Field label="Room name" htmlFor="name" icon={DoorOpen} required>
         <Input id="name" name="name" defaultValue={room?.name} required />
       </Field>
-      <Field label="Type" htmlFor="type" required>
+      <Field label="Type" htmlFor="type" icon={Tag} required>
         <Input id="type" name="type" placeholder="Studio, 1 Bedroom, ..." defaultValue={room?.type} required />
       </Field>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Size (m²)" htmlFor="size">
+        <Field label="Size (m²)" htmlFor="size" icon={Ruler}>
           <Input id="size" name="size" type="number" step="0.1" defaultValue={room?.size ?? ""} />
         </Field>
-        <Field label="Floor" htmlFor="floor">
+        <Field label="Floor" htmlFor="floor" icon={Layers}>
           <Input id="floor" name="floor" defaultValue={room?.floor ?? ""} />
         </Field>
       </div>
-      <Field label="Rental fee (per month, USD)" htmlFor="rentalFee" required>
+      <Field label="Rental fee (per month, USD)" htmlFor="rentalFee" icon={DollarSign} required>
         <Input
           id="rentalFee"
           name="rentalFee"
@@ -46,11 +46,11 @@ export function RoomForm({
           required
         />
       </Field>
-      <Field label="Floor plan URL" htmlFor="floorPlanUrl">
+      <Field label="Floor plan URL" htmlFor="floorPlanUrl" icon={LinkIcon}>
         <Input id="floorPlanUrl" name="floorPlanUrl" defaultValue={room?.floorPlanUrl ?? ""} />
       </Field>
 
-      <Field label="Facilities" htmlFor="facilityIds">
+      <Field label="Facilities" htmlFor="facilityIds" icon={Wrench}>
         <div className="grid grid-cols-2 gap-2 rounded-md border border-slate-200 p-3">
           {facilities.map((facility) => (
             <label key={facility.id} className="flex items-center gap-2 text-sm text-slate-700">
@@ -67,7 +67,7 @@ export function RoomForm({
         </div>
       </Field>
 
-      <Field label="Notes" htmlFor="notes">
+      <Field label="Notes" htmlFor="notes" icon={StickyNote}>
         <Textarea id="notes" name="notes" rows={3} defaultValue={room?.notes ?? ""} />
       </Field>
 

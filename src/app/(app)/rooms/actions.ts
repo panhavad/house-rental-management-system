@@ -185,6 +185,8 @@ type ContractFormFields = {
   occupants: number;
   rentalFee: number;
   deposit: number;
+  waterMeterStart: number;
+  electricityMeterStart: number;
   startDate: Date;
   endDate: Date;
   notes: string | null;
@@ -199,6 +201,8 @@ function parseContractFormFields(formData: FormData): ContractFormFields {
   const occupants = Math.max(1, Number(formData.get("occupants") ?? 1));
   const rentalFee = Number(formData.get("rentalFee") ?? 0);
   const deposit = Number(formData.get("deposit") ?? 0);
+  const waterMeterStart = Number(formData.get("waterMeterStart") ?? 0);
+  const electricityMeterStart = Number(formData.get("electricityMeterStart") ?? 0);
   const startDate = new Date(String(formData.get("startDate")));
   const endDate = new Date(String(formData.get("endDate")));
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -206,8 +210,24 @@ function parseContractFormFields(formData: FormData): ContractFormFields {
   if (!tenantName || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
     throw new Error("Tenant name, start date and end date are required.");
   }
+  if (Number.isNaN(waterMeterStart) || Number.isNaN(electricityMeterStart) || waterMeterStart < 0 || electricityMeterStart < 0) {
+    throw new Error("Water and electricity meter readings are required and cannot be negative.");
+  }
 
-  return { tenantName, tenantPhone, tenantEmail, tenantIdNumber, occupants, rentalFee, deposit, startDate, endDate, notes };
+  return {
+    tenantName,
+    tenantPhone,
+    tenantEmail,
+    tenantIdNumber,
+    occupants,
+    rentalFee,
+    deposit,
+    waterMeterStart,
+    electricityMeterStart,
+    startDate,
+    endDate,
+    notes,
+  };
 }
 
 async function findContractRoom(roomId: string, workspaceId: string) {
@@ -283,11 +303,11 @@ export async function startContract(roomId: string, formData: FormData) {
   const user = await requirePermission(PERMISSIONS.CONTRACTS_WRITE);
   const room = await findContractRoom(roomId, user.workspaceId);
   const fields = parseContractFormFields(formData);
-  const { tenantName, tenantPhone, tenantIdNumber, tenantEmail, occupants, rentalFee, deposit, startDate, endDate, notes } = fields;
+  const { tenantName, occupants } = fields;
 
   const [contract] = await prisma.$transaction([
     prisma.contract.create({
-      data: { roomId, tenantName, tenantPhone, tenantEmail, tenantIdNumber, occupants, rentalFee, deposit, startDate, endDate, notes },
+      data: { roomId, ...fields },
     }),
     prisma.room.update({ where: { id: roomId }, data: { status: "OCCUPIED" } }),
   ]);

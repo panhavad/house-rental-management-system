@@ -160,6 +160,11 @@ model Contract {
   occupants         Int            @default(1)
   rentalFee         Float
   deposit           Float          @default(0)
+  /// Water meter reading at move-in, used as the "previous reading" baseline for
+  /// this tenancy's first utility bill. Defaults to the room's latest historical
+  /// reading when the contract is started, but can be overridden.
+  waterMeterStart       Float          @default(0)
+  electricityMeterStart Float          @default(0)
   startDate         DateTime
   endDate           DateTime
   status            ContractStatus @default(ACTIVE)

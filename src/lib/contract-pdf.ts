@@ -22,6 +22,9 @@ export type ContractPdfData = {
     occupants: number;
     rentalFee: number;
     deposit: number;
+    /** Meter readings captured at move-in — the baseline for this tenancy's first utility bill. */
+    waterMeterStart: number;
+    electricityMeterStart: number;
     startDate: Date;
     endDate: Date;
     notes: string | null;
@@ -69,6 +72,8 @@ export const CONTRACT_TEMPLATE_PLACEHOLDERS: { token: string; label: string }[] 
   { token: "endDate", label: "Lease end date" },
   { token: "rentalFee", label: "Monthly rent, formatted in the workspace currency" },
   { token: "deposit", label: "Security deposit, formatted in the workspace currency" },
+  { token: "waterMeterStart", label: "Water meter reading at move-in" },
+  { token: "electricityMeterStart", label: "Electricity meter reading at move-in" },
   { token: "notes", label: "Additional notes entered on the contract" },
   { token: "contractId", label: "Contract ID (or \"Draft\" while previewing)" },
   { token: "generatedDate", label: "Date the document was generated" },
@@ -120,6 +125,8 @@ Security deposit: {{deposit}}
 Rent is due in full on or before the last day of each calendar month. The security deposit is refundable at the end of the lease, less any deductions for unpaid rent, unpaid utility charges, or damage beyond normal wear and tear.
 
 ## Utilities
+Water meter reading at move-in: {{waterMeterStart}}
+Electricity meter reading at move-in: {{electricityMeterStart}}
 Water and electricity are billed separately based on actual meter readings at the utility rates in effect for that month, and are due together with the monthly rent.
 
 ## Use of Premises
@@ -163,6 +170,8 @@ export function buildContractTemplateContext(data: ContractPdfData): Record<stri
     endDate: formatDate(data.contract.endDate),
     rentalFee: formatMoney(data.contract.rentalFee, data.settings),
     deposit: formatMoney(data.contract.deposit, data.settings),
+    waterMeterStart: `${data.contract.waterMeterStart} units`,
+    electricityMeterStart: `${data.contract.electricityMeterStart} units`,
     notes: data.contract.notes ?? "",
     contractId: data.contract.id ?? "Draft (not yet started)",
     generatedDate: formatDate(data.generatedAt),

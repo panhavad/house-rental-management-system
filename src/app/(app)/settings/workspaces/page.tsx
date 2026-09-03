@@ -97,7 +97,7 @@ export default async function WorkspacesPage() {
             </p>
             <form action={createOwnWorkspace} className="flex items-end gap-2">
               <div className="flex-1">
-                <Field label="New workspace name" htmlFor="workspaceName">
+                <Field label="New workspace name" htmlFor="workspaceName" icon={Building2}>
                   <Input id="workspaceName" name="workspaceName" required placeholder="My Other Business" />
                 </Field>
               </div>

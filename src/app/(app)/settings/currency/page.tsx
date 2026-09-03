@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { Save, Coins } from "lucide-react";
+import { Save, Coins, ArrowRightLeft } from "lucide-react";
 import { getAppSettings, formatMoney } from "@/lib/currency";
 import { updateCurrencySettings } from "@/app/(app)/settings/currency/actions";
 
@@ -31,13 +31,13 @@ export default async function CurrencySettingsPage() {
         <Card>
           <CardBody>
             <form action={updateCurrencySettings} className="flex flex-col gap-4">
-              <Field label="Display currency" htmlFor="currency" required>
+              <Field label="Display currency" htmlFor="currency" icon={Coins} required>
                 <Select id="currency" name="currency" defaultValue={settings.currency} required>
                   <option value="USD">US Dollar (USD)</option>
                   <option value="KHR">Cambodian Riel (KHR)</option>
                 </Select>
               </Field>
-              <Field label="Exchange rate (KHR per 1 USD)" htmlFor="exchangeRate" required>
+              <Field label="Exchange rate (KHR per 1 USD)" htmlFor="exchangeRate" icon={ArrowRightLeft} required>
                 <Input
                   id="exchangeRate"
                   name="exchangeRate"
